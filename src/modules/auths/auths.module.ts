@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Role } from 'src/modules/roles/entities/role.entity';
+import { Device } from 'src/modules/users/entities/device.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { MailModule } from '../mail/mail.module';
 import { Verification } from '../verifications/entities/verification.entity';
@@ -14,7 +15,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Role,Verification]),
+    TypeOrmModule.forFeature([User, Role, Verification, Device]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

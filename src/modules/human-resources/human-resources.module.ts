@@ -4,8 +4,10 @@ import { HumanResource } from './entities/human-resource.entity';
 import { HumanResourcesService } from './human-resources.service';
 import { HumanResourcesController } from './human-resources.controller';
 
+import { AuthsModule } from '../auths/auths.module';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([HumanResource])],
+  imports: [TypeOrmModule.forFeature([HumanResource]), AuthsModule],
   controllers: [HumanResourcesController],
   providers: [HumanResourcesService],
   exports: [HumanResourcesService],

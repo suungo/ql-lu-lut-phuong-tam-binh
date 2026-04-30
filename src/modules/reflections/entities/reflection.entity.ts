@@ -1,7 +1,10 @@
 import { BaseEntity } from 'src/common/entities/base.entity';
+import type { FloodDamage } from 'src/modules/flood-damages/entities/flood-damage.entity';
 import { User } from 'src/modules/users/entities/user.entity';
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { Category, EventType, Priority, ReflectionStatus } from '../enums/reflection.enum';
+import { Comment } from './comment.entity';
+import { Like } from './like.entity';
 
 @Entity('reflections')
 export class Reflection extends BaseEntity {
@@ -58,7 +61,7 @@ export class Reflection extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ type: 'simple-array', nullable: true })
+  @Column({ type: 'json', nullable: true })
   imageUrl?: string[];
 
   @Column({ type: 'text', nullable: true })
@@ -66,4 +69,16 @@ export class Reflection extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   respondedAt?: Date;
+
+  @Column({ nullable: true, name: 'managed_by' })
+  managedBy?: number;
+
+  @OneToMany(() => Like, (l) => l.reflection)
+  likes: Like[];
+
+  @OneToMany(() => Comment, (c) => c.reflection)
+  comments: Comment[];
+
+  @OneToMany(() => require('../../flood-damages/entities/flood-damage.entity').FloodDamage, (fd: FloodDamage) => fd.reflection)
+  floodDamages: FloodDamage[];
 }

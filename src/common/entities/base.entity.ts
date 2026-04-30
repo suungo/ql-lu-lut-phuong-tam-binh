@@ -11,7 +11,7 @@ export class BaseEntity {
   id: number;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt?: Date;
+  createdAt?: Date; 
 
   @Column({ nullable: true })
   createdBy?: number;

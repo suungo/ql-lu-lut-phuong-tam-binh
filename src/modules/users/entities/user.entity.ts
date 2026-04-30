@@ -1,13 +1,16 @@
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { Gender } from 'src/common/enums/gender.enum';
-import { UserStatus } from '../enums/user-status.enum';
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
-import { Role } from 'src/modules/roles/entities/role.entity';
-import { Notification } from 'src/modules/notifications/entities/notification.entity';
-import { Message } from 'src/modules/chats/entities/message.entity';
 import { Conversation } from 'src/modules/chats/entities/conversation.entity';
+import { Message } from 'src/modules/chats/entities/message.entity';
+import type { FloodDamage } from 'src/modules/flood-damages/entities/flood-damage.entity';
+import { Notification } from 'src/modules/notifications/entities/notification.entity';
+import { Comment } from 'src/modules/reflections/entities/comment.entity';
+import { Like } from 'src/modules/reflections/entities/like.entity';
 import { Reflection } from 'src/modules/reflections/entities/reflection.entity';
-import { Post } from 'src/modules/posts/entities/post.entity';
+import { Role } from 'src/modules/roles/entities/role.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { UserStatus } from '../enums/user-status.enum';
+import { Device } from './device.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -57,6 +60,17 @@ export class User extends BaseEntity {
   @OneToMany(() => Reflection, (r) => r.user)
   reflections: Reflection[];
 
-  @OneToMany(() => Post, (post) => post.user)
-  posts: Post[];
+  @OneToMany(() => Like, (l) => l.user)
+  likes: Like[];
+
+  @OneToMany(() => Comment, (c) => c.user)
+  comments: Comment[];
+
+  @OneToMany(() => Device, (d) => d.user)
+  devices: Device[];
+
+  // 🔗 One-to-Many: Cán bộ ghi nhận nhiều thiệt hại
+  @OneToMany(() => require('../../flood-damages/entities/flood-damage.entity').FloodDamage, (fd: FloodDamage) => fd.creator)
+  floodDamages: FloodDamage[];
+
 }

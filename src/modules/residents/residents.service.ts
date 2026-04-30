@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { RoleCode } from 'src/common/enums/role-code.enum';
 import { Like, Repository } from 'typeorm';
+import { AuthsService } from '../auths/auths.service';
 import { CreateResidentDto, UpdateResidentDto } from './dto/resident.dto';
 import { Resident } from './entities/resident.entity';
 import { HasBusiness, HasChildren, HasElderly, HasPregnant, HasSick, HouseType } from './enums/resident.enum';
@@ -10,9 +12,10 @@ export class ResidentsService {
   constructor(
     @InjectRepository(Resident)
     private readonly repo: Repository<Resident>,
+    private readonly authsService: AuthsService,
   ) {}
 
-  async create(dto: CreateResidentDto) {
+  async create(dto: CreateResidentDto, currentUser: any) {
     const existing = await this.repo.findOne({ where: { residentCode: dto.residentCode } });
     if (existing) throw new BadRequestException('Mã hộ dân đã tồn tại');
     const existingPhone = await this.repo.findOne({ where: { phoneNumber: dto.phoneNumber } });
@@ -20,12 +23,35 @@ export class ResidentsService {
     const existingEmail = await this.repo.findOne({ where: { email: dto.email } });
     if (existingEmail) throw new BadRequestException('Email đã tồn tại');
 
-    const saved = await this.repo.save(this.repo.create(dto));
+    const hr = this.repo.create({ ...dto, createdBy: currentUser.id });
+    const saved = await this.repo.save(hr);
+
+    // Tự động tạo tài khoản người dùng cho hộ dân
+    try {
+      const user = await this.authsService.createAccount({
+        fullName: dto.fullName,
+        phoneNumber: dto.phoneNumber,
+        email: dto.email,
+        roleCode: RoleCode.RESIDENT,
+      });
+
+      // Cập nhật userId cho hộ dân
+      saved.userId = user.id;
+      await this.repo.save(saved);
+    } catch (error) {
+      console.error('❌ Tự động tạo tài khoản cho hộ dân thất bại:', error.message);
+    }
+
     return { statusCode: 201, message: 'Thêm hộ dân thành công', data: saved };
   }
 
-  async findAll(page = 1, limit = 10, keyword?: string, houseType?: HouseType, hasElderly?: HasElderly, hasChildren?: HasChildren, hasPregnantWomen?: HasPregnant, hasChronicDisease?: HasSick, hasBusiness?: HasBusiness) {
+  async findAll(page = 1, limit = 10, currentUser?: any, keyword?: string, houseType?: HouseType, hasElderly?: HasElderly, hasChildren?: HasChildren, hasPregnantWomen?: HasPregnant, hasChronicDisease?: HasSick, hasBusiness?: HasBusiness) {
     const baseWhere: any = {};
+    
+    // Nếu là MANAGER thì chỉ xem dữ liệu mình tạo
+    if (currentUser?.roleCode === RoleCode.MANAGER) {
+      baseWhere.createdBy = currentUser.id;
+    }
     if (houseType) {
       baseWhere.houseType = houseType;
     }
@@ -64,7 +90,10 @@ export class ResidentsService {
   }
 
   async findOne(id: number) {
-    const r = await this.repo.findOne({ where: { id } });
+    const r = await this.repo.findOne({
+      where: { id },
+      relations: ['floodDamages'],
+    });
     if (!r) throw new NotFoundException('Không tìm thấy cư dân');
     return { statusCode: 200, message: 'Thành công', data: r };
   }
@@ -81,5 +110,15 @@ export class ResidentsService {
     if (!r) throw new NotFoundException('Không tìm thấy cư dân');
     await this.repo.softDelete(id);
     return { statusCode: 200, message: 'Xóa thành công' };
+  }
+
+  async findNearby(lat: number, lng: number, radiusInMeters: number) {
+    return await this.repo
+      .createQueryBuilder('resident')
+      .where(
+        `6371000 * acos(cos(radians(:lat)) * cos(radians(resident.latitude)) * cos(radians(resident.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(resident.latitude))) <= :radius`,
+        { lat, lng, radius: radiusInMeters },
+      )
+      .getMany();
   }
 }

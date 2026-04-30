@@ -1,14 +1,13 @@
 import { Routes } from '@nestjs/core';
 import { AuthsModule } from 'src/modules/auths/auths.module';
-import { UsersModule } from 'src/modules/users/users.module';
-import { RolesModule } from 'src/modules/roles/roles.module';
-import { HumanResourcesModule } from 'src/modules/human-resources/human-resources.module';
-import { ResidentsModule } from 'src/modules/residents/residents.module';
-import { ReflectionsModule } from 'src/modules/reflections/reflections.module';
-import { VerificationsModule } from 'src/modules/verifications/verifications.module';
 import { ChatsModule } from 'src/modules/chats/chats.module';
+import { HumanResourcesModule } from 'src/modules/human-resources/human-resources.module';
 import { NotificationsModule } from 'src/modules/notifications/notifications.module';
-import { PostsModule } from 'src/modules/posts/posts.module';
+import { ReflectionsModule } from 'src/modules/reflections/reflections.module';
+import { ResidentsModule } from 'src/modules/residents/residents.module';
+import { RolesModule } from 'src/modules/roles/roles.module';
+import { UsersModule } from 'src/modules/users/users.module';
+import { VerificationsModule } from 'src/modules/verifications/verifications.module';
 
 export const routes: Routes = [
   { path: 'auth', module: AuthsModule },         // /api/auth/...
@@ -16,9 +15,8 @@ export const routes: Routes = [
   { path: 'roles', module: RolesModule },         // /api/roles/...
   { path: 'human-resources', module: HumanResourcesModule }, // /api/human-resources/...
   { path: 'residents', module: ResidentsModule }, // /api/residents/...
-  { path: 'reports', module: ReflectionsModule }, // /api/reports/... (client dùng 'reports')
+  { path: 'reports', module: ReflectionsModule }, // /api/reports/... (reflections module)
   { path: 'verifications', module: VerificationsModule }, // /api/verifications/...
   { path: 'chats', module: ChatsModule },         // /api/chats/...
   { path: 'notifications', module: NotificationsModule }, // /api/notifications/...
-  { path: 'posts', module: PostsModule },         // /api/posts/...
 ];

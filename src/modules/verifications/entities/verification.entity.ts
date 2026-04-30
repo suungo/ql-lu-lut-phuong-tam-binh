@@ -49,4 +49,7 @@ export class Verification extends BaseEntity {
 
   @Column({ nullable: true, type: 'json' })
   attachments?: string[];
+
+  @Column({ nullable: true, name: 'reference_id' })
+  referenceId?: number;
 }

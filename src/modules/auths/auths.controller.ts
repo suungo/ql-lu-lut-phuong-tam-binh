@@ -69,22 +69,61 @@ resetPassword(@Body() dto: ResetPasswordDto) {
 }
 
 
-// POST /api/auth/change-password
-@Post('change-password')
-@UseGuards(JwtAuthGuard)                    // ← Phải có guard này
-async changePassword(
-  @Req() req: any,                          // ← Lấy req để debug
-  @Body() dto: ChangePasswordDto,
-) {
-  const userId = req.user?.sub || req.user?.id;   // Một số người đặt là id thay vì sub
+  // POST /api/auth/change-password
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)                    // ← Phải có guard này
+  async changePassword(
+    @Req() req: any,                          // ← Lấy req để debug
+    @Body() dto: ChangePasswordDto,
+  ) {
+    const userId = req.user?.sub || req.user?.id;   // Một số người đặt là id thay vì sub
 
-  console.log('🔄 User từ JWT:', req.user);       // ← Log này rất quan trọng
+    console.log('🔄 User từ JWT:', req.user);       // ← Log này rất quan trọng
 
-  if (!userId) {
-    throw new UnauthorizedException('Không tìm thấy thông tin người dùng từ token');
+    if (!userId) {
+      throw new UnauthorizedException('Không tìm thấy thông tin người dùng từ token');
+    }
+
+    return this.authsService.changePassword(userId, dto);
   }
 
-  return this.authsService.changePassword(userId, dto);
-}
-}
+  // POST /api/auth/logout
+  @Post('logout')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Đăng xuất và xóa thiết bị' })
+  @ApiBody({
+    schema: {
+      example: {
+        deviceId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    },
+  })
+  async logout(
+    @Req() req: any,
+    @Body('deviceId') deviceId?: string,
+  ) {
+    const userId = req.user?.sub || req.user?.id;
 
+    if (!userId) {
+      throw new UnauthorizedException('Không tìm thấy thông tin người dùng từ token');
+    }
+
+    return this.authsService.logout(userId, deviceId);
+  }
+
+  // GET /api/auth/devices
+  @Get('devices')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Lấy danh sách thiết bị đang active' })
+  async getUserDevices(@Req() req: any) {
+    const userId = req.user?.sub || req.user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedException('Không tìm thấy thông tin người dùng từ token');
+    }
+
+    return this.authsService.getUserActiveDevices(userId);
+  }
+}

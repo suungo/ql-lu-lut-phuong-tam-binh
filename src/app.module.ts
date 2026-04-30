@@ -1,27 +1,29 @@
 import { Module, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { APP_GUARD, RouterModule } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule, seconds } from '@nestjs/throttler';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { getDatabaseConfig } from './database/database.config';
 import { routes } from './routes';
 
 // Modules
 import { AuthsModule } from './modules/auths/auths.module';
-import { UsersModule } from './modules/users/users.module';
-import { RolesModule } from './modules/roles/roles.module';
-import { HumanResourcesModule } from './modules/human-resources/human-resources.module';
-import { ResidentsModule } from './modules/residents/residents.module';
-import { ReflectionsModule } from './modules/reflections/reflections.module';
-import { VerificationsModule } from './modules/verifications/verifications.module';
 import { ChatsModule } from './modules/chats/chats.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { FloodDamagesModule } from './modules/flood-damages/floodDamages.module';
+import { HumanResourcesModule } from './modules/human-resources/human-resources.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { PostsModule } from './modules/posts/posts.module';
+import { ReflectionsModule } from './modules/reflections/reflections.module';
+import { ResidentsModule } from './modules/residents/residents.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { UsersModule } from './modules/users/users.module';
+import { VerificationsModule } from './modules/verifications/verifications.module';
 
 // Seeds
+import { Role } from './modules/roles/entities/role.entity';
 import { RoleSeederService } from './seeds/role.seeder';
 import { SeederRunner } from './seeds/seeder-runner';
-import { Role } from './modules/roles/entities/role.entity';
 
 @Module({
   imports: [
@@ -54,7 +56,9 @@ import { Role } from './modules/roles/entities/role.entity';
     VerificationsModule,
     ChatsModule,
     NotificationsModule,
-    PostsModule,
+    CloudinaryModule,
+    UploadModule,
+    FloodDamagesModule,
   ],
   providers: [
     RoleSeederService,

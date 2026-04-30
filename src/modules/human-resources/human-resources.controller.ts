@@ -20,6 +20,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { RoleCode } from 'src/common/enums/role-code.enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { CreateHumanResourceDto } from './dto/create-human-resource.dto';
 import { UpdateHumanResourceDto } from './dto/update-human-resource.dto';
 import { HumanResourceStatus } from './enums/human-resource.enum';
@@ -35,8 +36,8 @@ export class HumanResourcesController {
   @Post()
   @Roles(RoleCode.ADMIN, RoleCode.MANAGER)
   @ApiOperation({ summary: 'Thêm nhân sự mới' })
-  create(@Body() dto: CreateHumanResourceDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateHumanResourceDto, @CurrentUser() user: any) {
+    return this.service.create(dto, user);
   }
 
   @Get()
@@ -46,12 +47,13 @@ export class HumanResourcesController {
   @ApiQuery({ name: 'keyword', required: false })
   @ApiQuery({name: 'status' , required: false})
   findAll(
+    @CurrentUser() user: any,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('keyword') keyword?: string,
     @Query('status') status?: HumanResourceStatus,
   ) {
-    return this.service.findAll(+page, +limit, keyword, status);
+    return this.service.findAll(+page, +limit, user, keyword, status);
   }
 
   @Get(':id')

@@ -22,6 +22,10 @@ export class CreateVerificationDto {
   @IsArray()
   @IsOptional()
   attachments?: string[];
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  referenceId?: number;
 }
 
 export class UpdateVerificationDto extends PartialType(CreateVerificationDto) {

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { RoleCode } from 'src/common/enums/role-code.enum';
 
 @Injectable()
 export class UsersService {
@@ -43,6 +44,13 @@ export class UsersService {
     const saved = await this.repo.save(user);
     const { password: _p, ...result } = saved;
     return { statusCode: 200, message: 'Cập nhật thành công', data: result };
+  }
+
+  async findByRoleCode(roleCode: RoleCode) {
+    return await this.repo.find({
+      where: { role: { roleCode } },
+      relations: ['role'],
+    });
   }
 
   async remove(id: number) {

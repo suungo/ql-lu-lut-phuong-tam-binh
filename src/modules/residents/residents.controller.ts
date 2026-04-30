@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RoleCode } from 'src/common/enums/role-code.enum';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -18,7 +19,9 @@ export class ResidentsController {
   @Post()
   @Roles(RoleCode.ADMIN, RoleCode.MANAGER, RoleCode.STAFF)
   @ApiOperation({ summary: 'Thêm cư dân mới' })
-  create(@Body() dto: CreateResidentDto) { return this.service.create(dto); }
+  create(@Body() dto: CreateResidentDto, @CurrentUser() user: any) { 
+    return this.service.create(dto, user); 
+  }
 
   @Get()
   @ApiOperation({ summary: 'Danh sách cư dân' })
@@ -31,8 +34,19 @@ export class ResidentsController {
   @ApiQuery({ name: 'hasPregnantWomen', required: false })
   @ApiQuery({ name: 'hasChronicDisease', required: false })
   @ApiQuery({ name: 'hasBusiness', required: false })
-  findAll(@Query('page') page = 1, @Query('limit') limit = 10, @Query('keyword') keyword?: string, @Query('houseType') houseType?: HouseType, @Query('hasElderly') hasElderly?: HasElderly, @Query('hasChildren') hasChildren?: HasChildren, @Query('hasPregnantWomen') hasPregnantWomen?: HasPregnant, @Query('hasChronicDisease') hasChronicDisease?: HasSick, @Query('hasBusiness') hasBusiness?: HasBusiness) {
-    return this.service.findAll(+page, +limit, keyword, houseType, hasElderly, hasChildren, hasPregnantWomen, hasChronicDisease, hasBusiness);
+  findAll(
+    @CurrentUser() user: any,
+    @Query('page') page = 1, 
+    @Query('limit') limit = 10, 
+    @Query('keyword') keyword?: string, 
+    @Query('houseType') houseType?: HouseType, 
+    @Query('hasElderly') hasElderly?: HasElderly, 
+    @Query('hasChildren') hasChildren?: HasChildren, 
+    @Query('hasPregnantWomen') hasPregnantWomen?: HasPregnant, 
+    @Query('hasChronicDisease') hasChronicDisease?: HasSick, 
+    @Query('hasBusiness') hasBusiness?: HasBusiness
+  ) {
+    return this.service.findAll(+page, +limit, user, keyword, houseType, hasElderly, hasChildren, hasPregnantWomen, hasChronicDisease, hasBusiness);
   }
 
   @Get(':id')

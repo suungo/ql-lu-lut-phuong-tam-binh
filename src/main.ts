@@ -11,7 +11,7 @@ async function bootstrap() {
 
   // CORS
   app.enableCors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
@@ -49,8 +49,8 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  await app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on http://localhost:${PORT} and 0.0.0.0:${PORT}`);
     console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
   });
 }

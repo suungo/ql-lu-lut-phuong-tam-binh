@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { RoleCode } from 'src/common/enums/role-code.enum';
 import { Role } from 'src/modules/roles/entities/role.entity';
+import { Device } from 'src/modules/users/entities/device.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { MailService } from '../mail/mail.service';
@@ -27,6 +28,8 @@ export class AuthsService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
+    @InjectRepository(Device)
+    private readonly deviceRepository: Repository<Device>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private mailService: MailService,
@@ -67,6 +70,79 @@ export class AuthsService {
     };
   }
 
+  async createAccount(data: {
+    fullName: string;
+    phoneNumber: string;
+    email: string;
+    roleCode: RoleCode;
+  }) {
+    // Kiểm tra xem số điện thoại hoặc email đã tồn tại chưa
+    const existing = await this.userRepository.findOne({
+      where: [{ phoneNumber: data.phoneNumber }, { email: data.email }],
+    });
+    if (existing) {
+      throw new BadRequestException(
+        'Số điện thoại hoặc Email đã được sử dụng cho một tài khoản khác',
+      );
+    }
+
+    const role = await this.roleRepository.findOne({
+      where: { roleCode: data.roleCode },
+    });
+    if (!role) throw new NotFoundException('Vai trò không tồn tại');
+
+    // Tạo mật khẩu ngẫu nhiên phức tạp (8 ký tự: chữ thường, số, chữ hoa, ký tự đặc biệt)
+    const generateRandomPassword = (length = 8) => {
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const numbers = '0123456789';
+      const symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
+
+      const allChars = lowercase + uppercase + numbers + symbols;
+
+      // Đảm bảo ít nhất mỗi loại có 1 ký tự
+      let password = '';
+      password += lowercase[Math.floor(Math.random() * lowercase.length)];
+      password += uppercase[Math.floor(Math.random() * uppercase.length)];
+      password += numbers[Math.floor(Math.random() * numbers.length)];
+      password += symbols[Math.floor(Math.random() * symbols.length)];
+
+      for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+      }
+
+      // Trộn ngẫu nhiên chuỗi mật khẩu
+      return password
+        .split('')
+        .sort(() => 0.5 - Math.random())
+        .join('');
+    };
+
+    const rawPassword = generateRandomPassword(8);
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+    const user = this.userRepository.create({
+      fullName: data.fullName,
+      phoneNumber: data.phoneNumber,
+      email: data.email,
+      password: hashedPassword,
+      roleId: role.id,
+    });
+
+    const saved = await this.userRepository.save(user);
+
+    // Gửi email mật khẩu cho người dùng
+    this.mailService
+      .sendMail({
+        to: data.email,
+        subject: 'Thông tin tài khoản truy cập hệ thống',
+        text: `Chào ${data.fullName},\n\nTài khoản của bạn đã được khởi tạo thành công trên hệ thống.\n\nThông tin đăng nhập:\n- Số điện thoại: ${data.phoneNumber}\n- Mật khẩu: ${rawPassword}\n\nVui lòng đăng nhập và đổi mật khẩu để đảm bảo an toàn.\n\nTrân trọng.`,
+      })
+      .catch((err) => console.error('❌ Gửi email tài khoản thất bại:', err));
+
+    return saved;
+  }
+
   async login(dto: LoginDto) {
     const user = await this.userRepository.findOne({
       where: { phoneNumber: dto.phoneNumber },
@@ -82,10 +158,48 @@ export class AuthsService {
       throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
     }
 
+    // 🔥 Xử lý deviceId nếu được gửi từ frontend
+    if (dto.deviceId) {
+      // Tìm device đã tồn tại
+      let device = await this.deviceRepository.findOne({
+        where: { deviceId: dto.deviceId },
+      });
+
+      if (device) {
+        // Nếu device này thuộc về user khác, deactivate device cũ
+        if (device.userId !== user.id) {
+          await this.deviceRepository.update(
+            { deviceId: dto.deviceId },
+            { userId: user.id, isActive: true, lastActiveAt: new Date() }
+          );
+          console.log(`🔄 Device ${dto.deviceId} đã chuyển sang user ${user.id}`);
+        } else {
+          // Cập nhật thời gian hoạt động
+          await this.deviceRepository.update(
+            { deviceId: dto.deviceId },
+            { isActive: true, lastActiveAt: new Date() }
+          );
+        }
+      } else {
+        // Tạo device mới
+        device = this.deviceRepository.create({
+          deviceId: dto.deviceId,
+          userId: user.id,
+          deviceName: dto.deviceName || 'Unknown Device',
+          deviceType: dto.deviceType || 'web',
+          isActive: true,
+          lastActiveAt: new Date(),
+        });
+        await this.deviceRepository.save(device);
+        console.log(`✅ Tạo device mới: ${dto.deviceId} cho user ${user.id}`);
+      }
+    }
+
     const payload = {
       sub: user.id,
       phoneNumber: user.phoneNumber,
       roleCode: user.role?.roleCode,
+      deviceId: dto.deviceId, // Thêm deviceId vào payload để sử dụng khi logout
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '1d' });
@@ -100,7 +214,48 @@ export class AuthsService {
         accessToken,
         refreshToken,
         user: userData,
+        deviceId: dto.deviceId, // Trả về deviceId để frontend lưu
       },
+    };
+  }
+
+  // ====================== LOGOUT VÀ XÓA DEVICE ======================
+  async logout(userId: number, deviceId?: string) {
+    console.log(`🔄 Logout userId: ${userId}, deviceId: ${deviceId}`);
+
+    if (deviceId) {
+      // Deactivate device cụ thể
+      await this.deviceRepository.update(
+        { deviceId, userId },
+        { isActive: false }
+      );
+      console.log(`✅ Đã deactivate device: ${deviceId}`);
+    } else {
+      // Deactivate tất cả devices của user
+      await this.deviceRepository.update(
+        { userId },
+        { isActive: false }
+      );
+      console.log(`✅ Đã deactivate tất cả devices của user: ${userId}`);
+    }
+
+    return {
+      statusCode: 200,
+      message: 'Đăng xuất thành công',
+    };
+  }
+
+  // Lấy danh sách active devices của user
+  async getUserActiveDevices(userId: number) {
+    const devices = await this.deviceRepository.find({
+      where: { userId, isActive: true },
+      order: { lastActiveAt: 'DESC' },
+    });
+
+    return {
+      statusCode: 200,
+      message: 'Lấy danh sách thiết bị thành công',
+      data: devices,
     };
   }
 

@@ -46,14 +46,8 @@ export class HumanResource extends BaseEntity {
   status: HumanResourceStatus;
 
   @Column({ nullable: true })
-  startDate?: Date;
-
-  @Column({ nullable: true })
-  endDate?: Date;
-
-  @Column({ nullable: true })
-  salary?: number;
-
-  @Column({ nullable: true })
   notes?: string;
+
+  @Column({ nullable: true })
+  userId?: number;
 }

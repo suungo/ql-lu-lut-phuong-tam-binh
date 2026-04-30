@@ -9,15 +9,18 @@ import { CreateHumanResourceDto } from './dto/create-human-resource.dto';
 import { UpdateHumanResourceDto } from './dto/update-human-resource.dto';
 import { HumanResource } from './entities/human-resource.entity';
 import { HumanResourceStatus } from './enums/human-resource.enum';
+import { AuthsService } from '../auths/auths.service';
+import { RoleCode } from 'src/common/enums/role-code.enum';
 
 @Injectable()
 export class HumanResourcesService {
   constructor(
     @InjectRepository(HumanResource)
     private readonly repo: Repository<HumanResource>,
+    private readonly authsService: AuthsService,
   ) {}
 
-  async create(dto: CreateHumanResourceDto) {
+  async create(dto: CreateHumanResourceDto, currentUser?: any) {
     const existingCode = await this.repo.findOne({
       where: [
         { employeeCode: dto.employeeCode },
@@ -44,18 +47,46 @@ export class HumanResourcesService {
     });
     if (existingEmail) throw new BadRequestException('Email đã tồn tại');
 
-    const hr = this.repo.create(dto);
+    const hr = this.repo.create({ ...dto, createdBy: currentUser.id });
     const saved = await this.repo.save(hr);
+
+    // Tự động tạo tài khoản người dùng cho nhân sự
+    if (saved.email) {
+      try {
+        const user = await this.authsService.createAccount({
+          fullName: saved.fullName,
+          phoneNumber: saved.phoneNumber,
+          email: saved.email,
+          roleCode: saved.position as unknown as RoleCode,
+        });
+
+        // Cập nhật userId cho nhân sự
+        saved.userId = user.id;
+        await this.repo.save(saved);
+      } catch (error) {
+        console.error(
+          '❌ Tự động tạo tài khoản cho nhân sự thất bại:',
+          error.message,
+        );
+      }
+    }
+
     return { statusCode: 201, message: 'Thêm nhân sự thành công', data: saved };
   }
 
   async findAll(
   page: number = 1,
   limit: number = 10,
+  currentUser?: any,
   keyword?: string,           // optional
   status?: HumanResourceStatus   // ← Thêm ? để thành optional
 ) {
   const where: any = {};
+
+  // Nếu là MANAGER thì chỉ xem dữ liệu mình tạo
+  if (currentUser?.roleCode === RoleCode.MANAGER) {
+    where.createdBy = currentUser.id;
+  }
 
   // Xử lý tìm kiếm theo keyword
   if (keyword && keyword.trim() !== '') {

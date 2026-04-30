@@ -1,13 +1,13 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { VerificationsService } from './verifications.service';
-import { CreateVerificationDto, UpdateVerificationDto } from './dto/verification.dto';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { VerificationStatus } from './enums/verification.enum';
-import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RoleCode } from 'src/common/enums/role-code.enum';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { CreateVerificationDto, UpdateVerificationDto } from './dto/verification.dto';
+import { VerificationStatus } from './enums/verification.enum';
+import { VerificationsService } from './verifications.service';
 
 @ApiTags('Xác minh (Verifications)')
 @ApiBearerAuth()
@@ -24,12 +24,25 @@ export class VerificationsController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(RoleCode.ADMIN, RoleCode.MANAGER, RoleCode.STAFF)
+  @Roles(RoleCode.ADMIN, RoleCode.STAFF, RoleCode.MANAGER, RoleCode.LEADER)
   @ApiOperation({ summary: 'Danh sách yêu cầu xác minh' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', enum: VerificationStatus, required: false })
-  findAll(@Query('page') page = 1, @Query('limit') limit = 10, @Query('status') status?: VerificationStatus) {
+  findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('status') status?: VerificationStatus,
+    @CurrentUser() user?: any,
+  ) {
+    // Nếu là MANAGER, chỉ cho phép xem các yêu cầu đã được xác minh xong (APPROVED)
+    // Ngăn chặn việc MANAGER xem các yêu cầu đang chờ (PENDING)
+    if (user?.role?.roleCode === RoleCode.MANAGER) {
+      if (!status || status === VerificationStatus.PENDING) {
+        status = VerificationStatus.APPROVED;
+      }
+    }
+
     return this.service.findAll(+page, +limit, status);
   }
 
@@ -45,8 +58,8 @@ export class VerificationsController {
 
   @Patch(':id')
   @UseGuards(RolesGuard)
-  @Roles(RoleCode.ADMIN, RoleCode.MANAGER, RoleCode.STAFF)
-  @ApiOperation({ summary: 'Duyệt / Từ chối yêu cầu xác minh' })
+  @Roles(RoleCode.ADMIN, RoleCode.STAFF, RoleCode.LEADER, RoleCode.MANAGER)
+  @ApiOperation({ summary: 'Duyệt / Từ chối / Hoàn thành yêu cầu xác minh' })
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateVerificationDto, @CurrentUser() user: any) {
     return this.service.update(id, dto, user.id);
   }

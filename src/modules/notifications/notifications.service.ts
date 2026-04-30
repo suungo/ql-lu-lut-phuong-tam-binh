@@ -1,18 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from './entities/notification.entity';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly repo: Repository<Notification>,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   async create(data: { userId: number; title: string; content: string; type?: string; referenceId?: number }) {
     const n = this.repo.create(data);
-    return await this.repo.save(n);
+    const saved = await this.repo.save(n);
+    
+    // Phát thông báo realtime tới user
+    this.notificationsGateway.sendNotificationToUser(data.userId, saved);
+    
+    return saved;
   }
 
   async findByUser(userId: number, page = 1, limit = 10) {
