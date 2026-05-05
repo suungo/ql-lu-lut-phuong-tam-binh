@@ -51,6 +51,10 @@ export const getDatabaseConfig = (
     logging: ['error'],
     // 🔐 SSL bắt buộc khi kết nối Supabase (cả dev lẫn production)
     ssl: { rejectUnauthorized: false },
+    connectTimeoutMS: 10000, // timeout 10s thay vì mặc định
+    extra: {
+      connectionTimeoutMillis: 10000,
+    },
   };
 };
 
