@@ -49,8 +49,8 @@ export const getDatabaseConfig = (
     synchronize: configService.get<string>('DB_SYNC') === 'true',
     namingStrategy: new SnakeNamingStrategy(),
     logging: ['error'],
-    // 🔐 SSL bắt buộc khi kết nối Supabase trên production
-    ssl: isProduction ? { rejectUnauthorized: false } : false,
+    // 🔐 SSL bắt buộc khi kết nối Supabase (cả dev lẫn production)
+    ssl: { rejectUnauthorized: false },
   };
 };
 
