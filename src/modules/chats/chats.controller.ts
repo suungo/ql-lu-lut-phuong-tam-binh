@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ChatsService } from './chats.service';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -19,7 +28,10 @@ export class ChatsController {
 
   @Post('conversation/:userId')
   @ApiOperation({ summary: 'Tạo hoặc lấy cuộc trò chuyện với user khác' })
-  getOrCreate(@Param('userId', ParseIntPipe) userId: number, @CurrentUser() user: any) {
+  getOrCreate(
+    @Param('userId', ParseIntPipe) userId: number,
+    @CurrentUser() user: any,
+  ) {
     return this.service.getOrCreateConversation(user.id, userId);
   }
 

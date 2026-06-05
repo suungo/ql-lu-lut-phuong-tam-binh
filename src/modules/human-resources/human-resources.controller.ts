@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Public } from 'src/common/decorators/public.decorator';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -40,12 +41,22 @@ export class HumanResourcesController {
     return this.service.create(dto, user);
   }
 
+  @Public()
+  @Post('webhook/create-from-verification')
+  @ApiOperation({
+    summary: 'Webhook nhận dữ liệu từ hệ thống xác thực nhân sự',
+  })
+  async createFromWebhook(@Body() dto: any) {
+    const creatorId = dto.createdBy ? Number(dto.createdBy) : 1;
+    return this.service.create(dto, { id: creatorId });
+  }
+
   @Get()
   @ApiOperation({ summary: 'Danh sách nhân sự' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'keyword', required: false })
-  @ApiQuery({name: 'status' , required: false})
+  @ApiQuery({ name: 'status', required: false })
   findAll(
     @CurrentUser() user: any,
     @Query('page') page = 1,

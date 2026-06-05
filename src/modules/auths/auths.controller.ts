@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -8,6 +16,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/resetPassword.dto';
+import { SubscribePushDto } from './dto/subscribe-push.dto';
 
 @ApiTags('Xác thực (Auth)')
 @Controller()
@@ -47,44 +56,63 @@ export class AuthsController {
   }
 
   // POST /api/auth/send-otp-reset-password
-@Post('send-otp-reset-password')
-@ApiOperation({ summary: 'Gửi OTP về email để reset mật khẩu' })
-@ApiBody({
-  schema: {
-    example: {
-      phoneNumber: '0123456789',
+  @Post('send-otp-reset-password')
+  @ApiOperation({ summary: 'Gửi OTP về email để reset mật khẩu' })
+  @ApiBody({
+    schema: {
+      example: {
+        phoneNumber: '0123456789',
+      },
     },
-  },
-})
-sendOtpResetPassword(@Body('phoneNumber') phoneNumber: string) {
-  return this.authsService.sendOtpResetPassword(phoneNumber);
-}
+  })
+  sendOtpResetPassword(@Body('phoneNumber') phoneNumber: string) {
+    return this.authsService.sendOtpResetPassword(phoneNumber);
+  }
 
-// POST /api/auth/reset-password
-@Post('reset-password')
-@ApiOperation({ summary: 'Xác thực OTP và reset mật khẩu' })
-@ApiBody({ type: ResetPasswordDto })
-resetPassword(@Body() dto: ResetPasswordDto) {
-  return this.authsService.resetPasswordWithOtp(dto);
-}
-
+  // POST /api/auth/reset-password
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Xác thực OTP và reset mật khẩu' })
+  @ApiBody({ type: ResetPasswordDto })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authsService.resetPasswordWithOtp(dto);
+  }
 
   // POST /api/auth/change-password
   @Post('change-password')
-  @UseGuards(JwtAuthGuard)                    // ← Phải có guard này
+  @UseGuards(JwtAuthGuard) // ← Phải có guard này
   async changePassword(
-    @Req() req: any,                          // ← Lấy req để debug
+    @Req() req: any, // ← Lấy req để debug
     @Body() dto: ChangePasswordDto,
   ) {
-    const userId = req.user?.sub || req.user?.id;   // Một số người đặt là id thay vì sub
+    const userId = req.user?.sub || req.user?.id; // Một số người đặt là id thay vì sub
 
-    console.log('🔄 User từ JWT:', req.user);       // ← Log này rất quan trọng
+    console.log('🔄 User từ JWT:', req.user); // ← Log này rất quan trọng
 
     if (!userId) {
-      throw new UnauthorizedException('Không tìm thấy thông tin người dùng từ token');
+      throw new UnauthorizedException(
+        'Không tìm thấy thông tin người dùng từ token',
+      );
     }
 
     return this.authsService.changePassword(userId, dto);
+  }
+
+  // POST /api/auth/subscribe-push
+  @Post('subscribe-push')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Đăng ký nhận thông báo đẩy (Push Notifications)' })
+  @ApiBody({ type: SubscribePushDto })
+  async subscribePush(@Req() req: any, @Body() dto: SubscribePushDto) {
+    const userId = req.user?.sub || req.user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedException(
+        'Không tìm thấy thông tin người dùng từ token',
+      );
+    }
+
+    return this.authsService.subscribePush(userId, dto);
   }
 
   // POST /api/auth/logout
@@ -99,14 +127,13 @@ resetPassword(@Body() dto: ResetPasswordDto) {
       },
     },
   })
-  async logout(
-    @Req() req: any,
-    @Body('deviceId') deviceId?: string,
-  ) {
+  async logout(@Req() req: any, @Body('deviceId') deviceId?: string) {
     const userId = req.user?.sub || req.user?.id;
 
     if (!userId) {
-      throw new UnauthorizedException('Không tìm thấy thông tin người dùng từ token');
+      throw new UnauthorizedException(
+        'Không tìm thấy thông tin người dùng từ token',
+      );
     }
 
     return this.authsService.logout(userId, deviceId);
@@ -121,7 +148,9 @@ resetPassword(@Body() dto: ResetPasswordDto) {
     const userId = req.user?.sub || req.user?.id;
 
     if (!userId) {
-      throw new UnauthorizedException('Không tìm thấy thông tin người dùng từ token');
+      throw new UnauthorizedException(
+        'Không tìm thấy thông tin người dùng từ token',
+      );
     }
 
     return this.authsService.getUserActiveDevices(userId);

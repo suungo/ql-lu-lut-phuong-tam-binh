@@ -1,6 +1,21 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -27,6 +42,14 @@ export class UsersController {
     @Query('keyword') keyword?: string,
   ) {
     return this.service.findAll(+page, +limit, keyword);
+  }
+
+  @Get('role/:roleCode')
+  @UseGuards(RolesGuard)
+  @Roles(RoleCode.ADMIN, RoleCode.MANAGER, RoleCode.INSPECTOR)
+  @ApiOperation({ summary: 'Danh sách người dùng theo Role' })
+  findByRole(@Param('roleCode') roleCode: RoleCode) {
+    return this.service.findByRoleCode(roleCode);
   }
 
   // GET /api/users/me — khớp client

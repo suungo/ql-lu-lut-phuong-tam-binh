@@ -12,7 +12,6 @@ import { FloodDamagesModule } from '../flood-damages/floodDamages.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ResidentsModule } from '../residents/residents.module';
 import { UsersModule } from '../users/users.module';
-import { VerificationsModule } from '../verifications/verifications.module';
 
 @Module({
   imports: [
@@ -21,10 +20,9 @@ import { VerificationsModule } from '../verifications/verifications.module';
     NotificationsModule,
     ResidentsModule,
     UsersModule,
-    VerificationsModule,
   ],
   controllers: [ReflectionsController],
   providers: [ReflectionsService, LikesService, CommentsService],
   exports: [ReflectionsService, LikesService, CommentsService],
 })
-export class ReflectionsModule { }
+export class ReflectionsModule {}

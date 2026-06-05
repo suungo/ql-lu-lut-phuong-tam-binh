@@ -1,12 +1,23 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { Category, EventType, Priority, ReflectionStatus } from '../enums/reflection.enum';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import {
+  Category,
+  EventType,
+  Priority,
+  ReflectionStatus,
+} from '../enums/reflection.enum';
 
 export class CreateReflectionDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-    title: string; // Tiêu đề
+  title: string; // Tiêu đề
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -19,7 +30,7 @@ export class CreateReflectionDto {
   @IsString()
   @IsOptional()
   description?: string; // Mô tả
-  
+
   @ApiProperty()
   @IsNotEmpty()
   lat: number; // Vĩ độ
@@ -90,7 +101,6 @@ export class UpdateReflectionDto extends PartialType(CreateReflectionDto) {
   @IsOptional()
   response?: string;
 }
-
 
 export class ResponseReflectionDto {
   @ApiProperty()

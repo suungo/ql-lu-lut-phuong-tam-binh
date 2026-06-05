@@ -17,7 +17,9 @@ import { ConfigService } from '@nestjs/config';
   },
   namespace: '/notifications',
 })
-export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class NotificationsGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -28,7 +30,8 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth.token || client.handshake.headers.authorization;
+      const token =
+        client.handshake.auth.token || client.handshake.headers.authorization;
       if (!token) {
         client.disconnect();
         return;

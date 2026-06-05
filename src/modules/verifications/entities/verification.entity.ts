@@ -1,7 +1,10 @@
 import { BaseEntity } from 'src/common/entities/base.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { VerificationStatus, VerificationType } from '../enums/verification.enum';
+import {
+  VerificationStatus,
+  VerificationType,
+} from '../enums/verification.enum';
 
 @Entity('verifications')
 export class Verification extends BaseEntity {

@@ -16,11 +16,16 @@ import { Role } from 'src/modules/roles/entities/role.entity';
 import { Device } from 'src/modules/users/entities/device.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Verification } from 'src/modules/verifications/entities/verification.entity';
+import { Province } from 'src/modules/administrative/entities/province.entity';
+import { Ward } from 'src/modules/administrative/entities/ward.entity';
+import { DispatchReport } from 'src/modules/dispatch-reports/entities/dispatch-report.entity';
 
 export const ALL_ENTITIES = [
   User,
   Role,
   Device,
+  Province,
+  Ward,
   FloodDamage,
   HumanResource,
   Resident,
@@ -31,7 +36,7 @@ export const ALL_ENTITIES = [
   Notification,
   Conversation,
   Message,
-
+  DispatchReport,
 ];
 
 export const getDatabaseConfig = (
@@ -49,12 +54,15 @@ export const getDatabaseConfig = (
     synchronize: configService.get<string>('DB_SYNC') === 'true',
     namingStrategy: new SnakeNamingStrategy(),
     logging: ['error'],
-    // 🔐 SSL bắt buộc khi kết nối Supabase (cả dev lẫn production)
-    ssl: { rejectUnauthorized: false },
+    // 🔐 SSL bắt buộc khi kết nối Supabase (tự động tắt nếu chạy ở localhost)
+    ssl:
+      configService.get<string>('DB_HOST') === 'localhost' ||
+      configService.get<string>('DB_HOST') === '127.0.0.1'
+        ? false
+        : { rejectUnauthorized: false },
     connectTimeoutMS: 10000, // timeout 10s thay vì mặc định
     extra: {
       connectionTimeoutMillis: 10000,
     },
   };
 };
-

@@ -6,9 +6,15 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { Reflection } from '../reflections/entities/reflection.entity';
 import { ReflectionStatus } from '../reflections/enums/reflection.enum';
 import { UsersService } from '../users/users.service';
-import { CreateVerificationDto, UpdateVerificationDto } from './dto/verification.dto';
+import {
+  CreateVerificationDto,
+  UpdateVerificationDto,
+} from './dto/verification.dto';
 import { Verification } from './entities/verification.entity';
-import { VerificationStatus, VerificationType } from './enums/verification.enum';
+import {
+  VerificationStatus,
+  VerificationType,
+} from './enums/verification.enum';
 
 @Injectable()
 export class VerificationsService {
@@ -23,16 +29,31 @@ export class VerificationsService {
 
   async create(dto: CreateVerificationDto, user_id: number) {
     const code = `VR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const saved = await this.repo.save(this.repo.create({ ...dto, user_id, code }));
-    return { statusCode: 201, message: 'Gửi yêu cầu xác minh thành công', data: saved };
+    const saved = await this.repo.save(
+      this.repo.create({ ...dto, user_id, code }),
+    );
+    return {
+      statusCode: 201,
+      message: 'Gửi yêu cầu xác minh thành công',
+      data: saved,
+    };
   }
 
   async findAll(page = 1, limit = 10, status?: VerificationStatus) {
-    const qb = this.repo.createQueryBuilder('v').leftJoinAndSelect('v.user', 'user');
+    const qb = this.repo
+      .createQueryBuilder('v')
+      .leftJoinAndSelect('v.user', 'user');
     if (status) qb.andWhere('v.status = :status', { status });
-    qb.orderBy('v.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
+    qb.orderBy('v.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
     const [data, total] = await qb.getManyAndCount();
-    return { statusCode: 200, message: 'Thành công', data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      statusCode: 200,
+      message: 'Thành công',
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async findMyVerifications(userId: number, page = 1, limit = 10) {
@@ -42,7 +63,12 @@ export class VerificationsService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { statusCode: 200, message: 'Thành công', data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      statusCode: 200,
+      message: 'Thành công',
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async findOne(id: number) {
@@ -54,7 +80,14 @@ export class VerificationsService {
   async update(id: number, dto: UpdateVerificationDto, reviewerId: number) {
     const v = await this.repo.findOne({ where: { id } });
     if (!v) throw new NotFoundException('Không tìm thấy yêu cầu xác minh');
-    if (dto.status && [VerificationStatus.APPROVED, VerificationStatus.REJECTED, VerificationStatus.COMPLETED].includes(dto.status)) {
+    if (
+      dto.status &&
+      [
+        VerificationStatus.APPROVED,
+        VerificationStatus.REJECTED,
+        VerificationStatus.COMPLETED,
+      ].includes(dto.status)
+    ) {
       v.reviewedAt = new Date();
       v.reviewedBy = reviewerId;
 
@@ -81,9 +114,12 @@ export class VerificationsService {
               referenceId: reflection.id,
             });
 
-            // 2. Thông báo cho Quản lý phường (MANAGER)
+            // 2. Thông báo cho Quản lý phường (MANAGER) và ADMIN
             const residentName = reflection.user?.fullName || 'Người dân';
-            const managers = await this.usersService.findByRoleCode(RoleCode.MANAGER);
+            const managers = await this.usersService.findByRoleCodes([
+              RoleCode.MANAGER,
+              RoleCode.ADMIN,
+            ]);
             for (const m of managers) {
               await this.notificationsService.create({
                 userId: m.id,
@@ -95,7 +131,7 @@ export class VerificationsService {
             }
           } else if (dto.status === VerificationStatus.REJECTED) {
             reflection.status = ReflectionStatus.REJECTED;
-            
+
             // Thông báo cho người gửi phản ánh (Owner) về việc bị từ chối
             await this.notificationsService.create({
               userId: reflection.userId,
@@ -121,7 +157,11 @@ export class VerificationsService {
       }
     }
     Object.assign(v, dto);
-    return { statusCode: 200, message: 'Cập nhật thành công', data: await this.repo.save(v) };
+    return {
+      statusCode: 200,
+      message: 'Cập nhật thành công',
+      data: await this.repo.save(v),
+    };
   }
 
   async remove(id: number) {

@@ -20,6 +20,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/resetPassword.dto';
+import { SubscribePushDto } from './dto/subscribe-push.dto';
 
 @Injectable()
 export class AuthsService {
@@ -36,7 +37,6 @@ export class AuthsService {
     @InjectRepository(Verification)
     private verificationRepository: Repository<Verification>,
   ) {}
- 
 
   async register(dto: RegisterDto) {
     const existing = await this.userRepository.findOne({
@@ -75,6 +75,7 @@ export class AuthsService {
     phoneNumber: string;
     email: string;
     roleCode: RoleCode;
+    address?: string;
   }) {
     // Kiểm tra xem số điện thoại hoặc email đã tồn tại chưa
     const existing = await this.userRepository.findOne({
@@ -91,31 +92,33 @@ export class AuthsService {
     });
     if (!role) throw new NotFoundException('Vai trò không tồn tại');
 
-    // Tạo mật khẩu ngẫu nhiên phức tạp (8 ký tự: chữ thường, số, chữ hoa, ký tự đặc biệt)
+    // Tạo mật khẩu ngẫu nhiên tối giản (bắt đầu bằng @ và tiếp theo là 7 ký tự chữ thường, chữ hoa, số) để vừa bảo mật vừa dễ gõ trên điện thoại
     const generateRandomPassword = (length = 8) => {
       const lowercase = 'abcdefghijklmnopqrstuvwxyz';
       const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       const numbers = '0123456789';
-      const symbols = '!@#$%^&*()_+~`|}{[]:;?><,./-=';
 
-      const allChars = lowercase + uppercase + numbers + symbols;
+      const allChars = lowercase + uppercase + numbers;
 
-      // Đảm bảo ít nhất mỗi loại có 1 ký tự
+      // Đảm bảo ít nhất mỗi loại có 1 ký tự để đáp ứng độ bảo mật cơ bản
       let password = '';
       password += lowercase[Math.floor(Math.random() * lowercase.length)];
       password += uppercase[Math.floor(Math.random() * uppercase.length)];
       password += numbers[Math.floor(Math.random() * numbers.length)];
-      password += symbols[Math.floor(Math.random() * symbols.length)];
 
-      for (let i = password.length; i < length; i++) {
+      // Trừ đi 1 ký tự '@' ở đầu
+      const randomLength = length - 1;
+      for (let i = password.length; i < randomLength; i++) {
         password += allChars[Math.floor(Math.random() * allChars.length)];
       }
 
       // Trộn ngẫu nhiên chuỗi mật khẩu
-      return password
+      const shuffled = password
         .split('')
         .sort(() => 0.5 - Math.random())
         .join('');
+
+      return '@' + shuffled;
     };
 
     const rawPassword = generateRandomPassword(8);
@@ -127,6 +130,7 @@ export class AuthsService {
       email: data.email,
       password: hashedPassword,
       roleId: role.id,
+      ...(data.address ? { address: data.address } : {}),
     });
 
     const saved = await this.userRepository.save(user);
@@ -166,20 +170,26 @@ export class AuthsService {
       });
 
       if (device) {
-        // Nếu device này thuộc về user khác, deactivate device cũ
+        const updateData: any = {
+          isActive: true,
+          lastActiveAt: new Date(),
+        };
         if (device.userId !== user.id) {
-          await this.deviceRepository.update(
-            { deviceId: dto.deviceId },
-            { userId: user.id, isActive: true, lastActiveAt: new Date() }
-          );
-          console.log(`🔄 Device ${dto.deviceId} đã chuyển sang user ${user.id}`);
-        } else {
-          // Cập nhật thời gian hoạt động
-          await this.deviceRepository.update(
-            { deviceId: dto.deviceId },
-            { isActive: true, lastActiveAt: new Date() }
+          updateData.userId = user.id;
+          console.log(
+            `🔄 Device ${dto.deviceId} đã chuyển sang user ${user.id}`,
           );
         }
+        if (dto.expoPushToken) {
+          updateData.expoPushToken = dto.expoPushToken;
+        }
+        if (dto.webPushSub) {
+          updateData.webPushSub = dto.webPushSub;
+        }
+        await this.deviceRepository.update(
+          { deviceId: dto.deviceId },
+          updateData,
+        );
       } else {
         // Tạo device mới
         device = this.deviceRepository.create({
@@ -187,6 +197,8 @@ export class AuthsService {
           userId: user.id,
           deviceName: dto.deviceName || 'Unknown Device',
           deviceType: dto.deviceType || 'web',
+          expoPushToken: dto.expoPushToken,
+          webPushSub: dto.webPushSub,
           isActive: true,
           lastActiveAt: new Date(),
         });
@@ -219,6 +231,47 @@ export class AuthsService {
     };
   }
 
+  // ====================== ĐĂNG KÝ PUSH NOTIFICATIONS ======================
+  async subscribePush(userId: number, dto: SubscribePushDto) {
+    let device = await this.deviceRepository.findOne({
+      where: { deviceId: dto.deviceId },
+    });
+
+    if (device) {
+      const updateData: any = {
+        userId,
+        isActive: true,
+        lastActiveAt: new Date(),
+      };
+      if (dto.expoPushToken) updateData.expoPushToken = dto.expoPushToken;
+      if (dto.webPushSub) updateData.webPushSub = dto.webPushSub;
+
+      await this.deviceRepository.update(
+        { deviceId: dto.deviceId },
+        updateData,
+      );
+      console.log(`✅ Cập nhật push subscription cho device: ${dto.deviceId}`);
+    } else {
+      device = this.deviceRepository.create({
+        deviceId: dto.deviceId,
+        userId,
+        deviceName: 'Unknown Device',
+        deviceType: dto.expoPushToken ? 'mobile' : 'web',
+        expoPushToken: dto.expoPushToken,
+        webPushSub: dto.webPushSub,
+        isActive: true,
+        lastActiveAt: new Date(),
+      });
+      await this.deviceRepository.save(device);
+      console.log(`✅ Tạo và đăng ký push cho device mới: ${dto.deviceId}`);
+    }
+
+    return {
+      statusCode: 200,
+      message: 'Đăng ký nhận thông báo thành công',
+    };
+  }
+
   // ====================== LOGOUT VÀ XÓA DEVICE ======================
   async logout(userId: number, deviceId?: string) {
     console.log(`🔄 Logout userId: ${userId}, deviceId: ${deviceId}`);
@@ -227,15 +280,12 @@ export class AuthsService {
       // Deactivate device cụ thể
       await this.deviceRepository.update(
         { deviceId, userId },
-        { isActive: false }
+        { isActive: false },
       );
       console.log(`✅ Đã deactivate device: ${deviceId}`);
     } else {
       // Deactivate tất cả devices của user
-      await this.deviceRepository.update(
-        { userId },
-        { isActive: false }
-      );
+      await this.deviceRepository.update({ userId }, { isActive: false });
       console.log(`✅ Đã deactivate tất cả devices của user: ${userId}`);
     }
 
@@ -287,87 +337,95 @@ export class AuthsService {
         },
       };
     } catch {
-      throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
-    }
-  }
-
- async sendOtpResetPassword(phoneNumber: string) {
-  const user = await this.userRepository.findOne({
-    where: { phoneNumber },
-  });
-
-  if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-
-  // 🔥 lấy OTP gần nhất
-  const recentOtps = await this.verificationRepository.find({
-    where: {
-      user_id: user.id,
-    },
-    order: { createdAt: 'DESC' },
-    take: 3,
-  });
-
-  const now = Date.now();
-
-  // 🚨 1. Kiểm tra nếu đã gửi trong 180s
-  if (recentOtps.length > 0) {
-    const lastOtp = recentOtps[0];
-    const diff = now - new Date(lastOtp.createdAt).getTime();
-
-    if (diff < 180000) {
-      throw new BadRequestException(
-        `Vui lòng chờ ${Math.ceil((180000 - diff) / 1000)}s để gửi lại OTP`
+      throw new UnauthorizedException(
+        'Refresh token không hợp lệ hoặc đã hết hạn',
       );
     }
   }
 
-  // 🚨 2. Kiểm tra tối đa 3 lần trong 180s
-  const countIn3Minutes = recentOtps.filter((otp) => {
-    const diff = now - new Date(otp.createdAt).getTime();
-    return diff < 180000;
-  }).length;
+  async sendOtpResetPassword(phoneNumber: string) {
+    const user = await this.userRepository.findOne({
+      where: { phoneNumber },
+    });
 
-  if (countIn3Minutes >= 3) {
-    throw new BadRequestException(
-      'Bạn đã gửi OTP quá nhiều lần, vui lòng thử lại sau'
-    );
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+
+    // 🔥 lấy OTP gần nhất
+    const recentOtps = await this.verificationRepository.find({
+      where: {
+        user_id: user.id,
+      },
+      order: { createdAt: 'DESC' },
+      take: 3,
+    });
+
+    const now = Date.now();
+
+    // 🚨 1. Kiểm tra nếu đã gửi trong 180s
+    if (recentOtps.length > 0) {
+      const lastOtp = recentOtps[0];
+      const diff = now - new Date(lastOtp.createdAt).getTime();
+
+      if (diff < 180000) {
+        throw new BadRequestException(
+          `Vui lòng chờ ${Math.ceil((180000 - diff) / 1000)}s để gửi lại OTP`,
+        );
+      }
+    }
+
+    // 🚨 2. Kiểm tra tối đa 3 lần trong 180s
+    const countIn3Minutes = recentOtps.filter((otp) => {
+      const diff = now - new Date(otp.createdAt).getTime();
+      return diff < 180000;
+    }).length;
+
+    if (countIn3Minutes >= 3) {
+      throw new BadRequestException(
+        'Bạn đã gửi OTP quá nhiều lần, vui lòng thử lại sau',
+      );
+    }
+
+    // 🔥 tạo OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 🔥 xoá OTP cũ (đảm bảo chỉ có 1 OTP active)
+    await this.verificationRepository.delete({
+      user_id: user.id,
+    });
+
+    // 🔥 lưu OTP mới
+    await this.verificationRepository.save({
+      user_id: user.id,
+      code: otp,
+      expiredAt: new Date(Date.now() + 5 * 60 * 1000),
+      title: 'OTP Reset Password',
+      description: 'Mã OTP dùng để đặt lại mật khẩu',
+    });
+
+    // 🔥 gửi email
+    this.mailService
+      .sendMail({
+        to: user.email,
+        subject: 'Mã OTP đặt lại mật khẩu',
+        text: `Mã OTP của bạn là: ${otp}`,
+      })
+      .catch((err) => {
+        console.error('❌ Gửi email OTP thất bại:', err);
+        // Không throw lỗi để tránh làm hỏng flow gửi OTP
+      });
+
+    return { statusCode: 201, message: 'Đã gửi OTP về email' };
   }
-
-  // 🔥 tạo OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // 🔥 xoá OTP cũ (đảm bảo chỉ có 1 OTP active)
-  await this.verificationRepository.delete({
-    user_id: user.id,
-  });
-
-  // 🔥 lưu OTP mới
-  await this.verificationRepository.save({
-    user_id: user.id,
-    code: otp,
-    expiredAt: new Date(Date.now() + 5 * 60 * 1000),
-    title: 'OTP Reset Password',
-    description: 'Mã OTP dùng để đặt lại mật khẩu',
-  });
-
-  // 🔥 gửi email
-  this.mailService.sendMail({
-    to: user.email,
-    subject: 'Mã OTP đặt lại mật khẩu',
-    text: `Mã OTP của bạn là: ${otp}`,
-  }).catch((err) => {
-    console.error('❌ Gửi email OTP thất bại:', err);
-    // Không throw lỗi để tránh làm hỏng flow gửi OTP
-  });
-
-  return { statusCode: 201, message: 'Đã gửi OTP về email' };
-}
   // Reset mật khẩu bằng OTP
   async resetPasswordWithOtp(dto: ResetPasswordDto) {
-    console.log('📥 Dữ liệu nhận được từ frontend:', dto);   // ← Quan trọng để debug
+    console.log('📥 Dữ liệu nhận được từ frontend:', dto); // ← Quan trọng để debug
 
     // Kiểm tra dữ liệu đầu vào
-    if (!dto.newPassword || typeof dto.newPassword !== 'string' || dto.newPassword.trim() === '') {
+    if (
+      !dto.newPassword ||
+      typeof dto.newPassword !== 'string' ||
+      dto.newPassword.trim() === ''
+    ) {
       throw new BadRequestException('Mật khẩu mới không được để trống');
     }
 
@@ -385,19 +443,21 @@ export class AuthsService {
       order: { expiredAt: 'DESC' },
     });
 
-    if (!otpRecord)
-      throw new BadRequestException('OTP không hợp lệ');
+    if (!otpRecord) throw new BadRequestException('OTP không hợp lệ');
 
     const now = new Date();
-  const expiredTime = new Date(otpRecord.expiredAt);   // Ép về Date object
+    const expiredTime = new Date(otpRecord.expiredAt); // Ép về Date object
 
-  console.log('🕒 Thời gian hiện tại:', now.toISOString());
-  console.log('⏰ Thời gian hết hạn trong DB:', expiredTime.toISOString());
-  console.log('⏳ Còn lại (giây):', Math.floor((expiredTime.getTime() - now.getTime()) / 1000));
+    console.log('🕒 Thời gian hiện tại:', now.toISOString());
+    console.log('⏰ Thời gian hết hạn trong DB:', expiredTime.toISOString());
+    console.log(
+      '⏳ Còn lại (giây):',
+      Math.floor((expiredTime.getTime() - now.getTime()) / 1000),
+    );
 
-  if (expiredTime < now) {
-    throw new BadRequestException('OTP đã hết hạn');
-  }
+    if (expiredTime < now) {
+      throw new BadRequestException('OTP đã hết hạn');
+    }
 
     // 🔥 Hash password an toàn
     const hashedPassword = await bcrypt.hash(dto.newPassword.trim(), 10);
@@ -410,54 +470,62 @@ export class AuthsService {
 
     console.log(`✅ Reset password thành công cho user: ${user.phoneNumber}`);
 
-    return { 
-      statusCode: 200, 
-      message: 'Đổi mật khẩu thành công' 
+    return {
+      statusCode: 200,
+      message: 'Đổi mật khẩu thành công',
     };
   }
 
   // Thay đổi mật khẩu
   // ====================== THAY ĐỔI MẬT KHẨU ======================
-async changePassword(userId: number, dto: ChangePasswordDto) {
-  console.log(`🔄 Yêu cầu đổi mật khẩu cho userId: ${userId}`);
+  async changePassword(userId: number, dto: ChangePasswordDto) {
+    console.log(`🔄 Yêu cầu đổi mật khẩu cho userId: ${userId}`);
 
-  // Tìm user hiện tại
-  const user = await this.userRepository.findOne({
-    where: { id: userId },
-    select: ['id', 'password'],   // chỉ lấy password để so sánh
-  });
+    // Tìm user hiện tại
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'password'], // chỉ lấy password để so sánh
+    });
 
-  if (!user) {
-    throw new NotFoundException('Không tìm thấy người dùng');
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    // Kiểm tra mật khẩu cũ có đúng không
+    const isOldPasswordCorrect = await bcrypt.compare(
+      dto.oldPassword,
+      user.password ?? '',
+    );
+
+    if (!isOldPasswordCorrect) {
+      throw new BadRequestException('Mật khẩu cũ không chính xác');
+    }
+
+    // Kiểm tra mật khẩu mới có giống mật khẩu cũ không
+    const isSameAsOld = await bcrypt.compare(
+      dto.newPassword,
+      user.password ?? '',
+    );
+    if (isSameAsOld) {
+      throw new BadRequestException(
+        'Mật khẩu mới không được trùng với mật khẩu cũ',
+      );
+    }
+
+    // Hash mật khẩu mới
+    const hashedNewPassword = await bcrypt.hash(dto.newPassword.trim(), 10);
+
+    // Cập nhật mật khẩu
+    await this.userRepository.update(
+      { id: userId },
+      { password: hashedNewPassword },
+    );
+
+    console.log(`✅ Đổi mật khẩu thành công cho userId: ${userId}`);
+
+    return {
+      statusCode: 200,
+      message: 'Đổi mật khẩu thành công',
+    };
   }
-
-  // Kiểm tra mật khẩu cũ có đúng không
-  const isOldPasswordCorrect = await bcrypt.compare(dto.oldPassword, user.password ?? '');
-
-  if (!isOldPasswordCorrect) {
-    throw new BadRequestException('Mật khẩu cũ không chính xác');
-  }
-
-  // Kiểm tra mật khẩu mới có giống mật khẩu cũ không
-  const isSameAsOld = await bcrypt.compare(dto.newPassword, user.password ?? '');
-  if (isSameAsOld) {
-    throw new BadRequestException('Mật khẩu mới không được trùng với mật khẩu cũ');
-  }
-
-  // Hash mật khẩu mới
-  const hashedNewPassword = await bcrypt.hash(dto.newPassword.trim(), 10);
-
-  // Cập nhật mật khẩu
-  await this.userRepository.update(
-    { id: userId },
-    { password: hashedNewPassword }
-  );
-
-  console.log(`✅ Đổi mật khẩu thành công cho userId: ${userId}`);
-
-  return {
-    statusCode: 200,
-    message: 'Đổi mật khẩu thành công',
-  };
-}
 }

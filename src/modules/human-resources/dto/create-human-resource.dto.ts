@@ -1,12 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Gender } from 'src/common/enums/gender.enum';
-import { HumanResourcePosition, HumanResourceStatus } from '../enums/human-resource.enum';
+import {
+  HumanResourcePosition,
+  HumanResourceStatus,
+} from '../enums/human-resource.enum';
 
 export class CreateHumanResourceDto {
   @ApiProperty({ example: 'Nguyễn Văn A' })

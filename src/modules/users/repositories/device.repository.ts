@@ -23,16 +23,19 @@ export class DeviceRepository extends Repository<Device> {
     await this.update({ deviceId }, { isActive: false });
   }
 
-  async deactivateAllUserDevices(userId: number, exceptDeviceId?: string): Promise<void> {
+  async deactivateAllUserDevices(
+    userId: number,
+    exceptDeviceId?: string,
+  ): Promise<void> {
     const query = this.createQueryBuilder()
       .update(Device)
       .set({ isActive: false })
       .where('user_id = :userId', { userId });
-    
+
     if (exceptDeviceId) {
       query.andWhere('deviceId != :deviceId', { deviceId: exceptDeviceId });
     }
-    
+
     await query.execute();
   }
 

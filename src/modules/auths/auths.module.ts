@@ -25,11 +25,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         signOptions: { expiresIn: '1d' },
       }),
     }),
-    MailModule
+    MailModule,
   ],
   controllers: [AuthsController],
   providers: [AuthsService, JwtStrategy, JwtAuthGuard],
   exports: [JwtModule, AuthsService, JwtAuthGuard, PassportModule],
 })
-
 export class AuthsModule {}

@@ -10,6 +10,7 @@ import { routes } from './routes';
 import { AuthsModule } from './modules/auths/auths.module';
 import { ChatsModule } from './modules/chats/chats.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { DispatchReportsModule } from './modules/dispatch-reports/dispatch-reports.module';
 import { FloodDamagesModule } from './modules/flood-damages/floodDamages.module';
 import { HumanResourcesModule } from './modules/human-resources/human-resources.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -19,6 +20,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UsersModule } from './modules/users/users.module';
 import { VerificationsModule } from './modules/verifications/verifications.module';
+import { AdministrativeModule } from './modules/administrative/administrative.module';
 
 // Seeds
 import { Role } from './modules/roles/entities/role.entity';
@@ -59,6 +61,8 @@ import { SeederRunner } from './seeds/seeder-runner';
     CloudinaryModule,
     UploadModule,
     FloodDamagesModule,
+    AdministrativeModule,
+    DispatchReportsModule,
   ],
   providers: [
     RoleSeederService,

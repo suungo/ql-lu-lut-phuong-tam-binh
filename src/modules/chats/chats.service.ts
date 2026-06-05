@@ -17,17 +17,32 @@ export class ChatsService {
     // Tìm conversation 1-1 giữa 2 user
     const existing = await this.convRepo
       .createQueryBuilder('c')
-      .innerJoin('conversation_participants', 'cp1', 'cp1.conversation_id = c.id AND cp1.user_id = :u1', { u1: user1Id })
-      .innerJoin('conversation_participants', 'cp2', 'cp2.conversation_id = c.id AND cp2.user_id = :u2', { u2: user2Id })
+      .innerJoin(
+        'conversation_participants',
+        'cp1',
+        'cp1.conversation_id = c.id AND cp1.user_id = :u1',
+        { u1: user1Id },
+      )
+      .innerJoin(
+        'conversation_participants',
+        'cp2',
+        'cp2.conversation_id = c.id AND cp2.user_id = :u2',
+        { u2: user2Id },
+      )
       .where('c.isGroup = false')
       .getOne();
 
-    if (existing) return { statusCode: 200, message: 'Thành công', data: existing };
+    if (existing)
+      return { statusCode: 200, message: 'Thành công', data: existing };
 
     const conv = await this.convRepo.save(
       this.convRepo.create({ isGroup: false, creatorId: user1Id }),
     );
-    return { statusCode: 201, message: 'Tạo cuộc trò chuyện thành công', data: conv };
+    return {
+      statusCode: 201,
+      message: 'Tạo cuộc trò chuyện thành công',
+      data: conv,
+    };
   }
 
   async getMyConversations(userId: number) {
@@ -47,7 +62,12 @@ export class ChatsService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { statusCode: 200, message: 'Thành công', data: data.reverse(), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    return {
+      statusCode: 200,
+      message: 'Thành công',
+      data: data.reverse(),
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   async sendMessage(conversationId: number, senderId: number, content: string) {

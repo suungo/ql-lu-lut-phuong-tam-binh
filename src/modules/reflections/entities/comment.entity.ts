@@ -18,14 +18,18 @@ export class Comment extends BaseEntity {
   @Column({ name: 'reflection_id' })
   reflectionId: number;
 
-  @ManyToOne(() => Reflection, (reflection) => reflection.comments, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Reflection, (reflection) => reflection.comments, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'reflection_id' })
   reflection: Reflection;
 
   @Column({ name: 'parent_id', nullable: true })
   parentId?: number; // Hỗ trợ reply comment
 
-  @ManyToOne(() => Comment, (comment) => comment.replies, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Comment, (comment) => comment.replies, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'parent_id' })
   parent?: Comment;
 

@@ -15,7 +15,9 @@ export class RolesService {
   }
 
   async findByCode(roleCode: string) {
-    const role = await this.roleRepository.findOne({ where: { roleCode: roleCode as any } });
+    const role = await this.roleRepository.findOne({
+      where: { roleCode: roleCode as any },
+    });
     if (!role) throw new NotFoundException(`Không tìm thấy role: ${roleCode}`);
     return role;
   }

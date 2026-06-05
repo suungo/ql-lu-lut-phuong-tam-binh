@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { UploadApiErrorResponse, UploadApiResponse, v2 as cloudinary } from 'cloudinary';
+import {
+  UploadApiErrorResponse,
+  UploadApiResponse,
+  v2 as cloudinary,
+} from 'cloudinary';
 const streamifier = require('streamifier');
 
 export type CloudinaryResponse = UploadApiResponse | UploadApiErrorResponse;
-
 
 @Injectable()
 export class CloudinaryService {

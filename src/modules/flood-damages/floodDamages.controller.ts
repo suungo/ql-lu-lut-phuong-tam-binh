@@ -1,14 +1,14 @@
 import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    ParseIntPipe,
-    Post,
-    Put,
-    Query,
-    Request,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  Query,
+  Request,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -28,10 +28,7 @@ export class FloodDamagesController {
   // ➕ Tạo thiệt hại mới
   @Post()
   @ApiOperation({ summary: 'Tạo thiệt hại mới' })
-  create(
-    @Body() dto: CreateFloodDamageDto,
-    @Request() req,
-  ) {
+  create(@Body() dto: CreateFloodDamageDto, @Request() req) {
     const userId = req.user?.sub;
     return this.floodDamagesService.create(dto, userId);
   }
@@ -78,7 +75,7 @@ export class FloodDamagesController {
 
   // 🔄 Cập nhật trạng thái thiệt hại
   @Put('status/:id')
-  @Roles(RoleCode.ADMIN, RoleCode.LEADER, RoleCode.MANAGER)
+  @Roles(RoleCode.ADMIN, RoleCode.MANAGER, RoleCode.OFFICER)
   @ApiOperation({ summary: 'Cập nhật trạng thái thiệt hại' })
   updateStatus(
     @Param('id', ParseIntPipe) id: number,

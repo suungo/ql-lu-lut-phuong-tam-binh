@@ -39,9 +39,8 @@ export class FloodDamagesService {
       // Lấy danh sách quản lý
       const managers = await this.usersService.findByRoleCode(RoleCode.MANAGER);
       const admins = await this.usersService.findByRoleCode(RoleCode.ADMIN);
-      const leaders = await this.usersService.findByRoleCode(RoleCode.LEADER);
 
-      const allManagers = [...admins, ...managers, ...leaders];
+      const allManagers = [...admins, ...managers];
 
       // Nội dung thông báo
       const title = 'Cư dân cập nhật thiệt hại mới';
@@ -66,9 +65,18 @@ export class FloodDamagesService {
 
   // 📋 Lấy danh sách thiệt hại (có filter, pagination)
   async findAll(dto: FilterFloodDamageDto) {
-    const { search, category, status, reflectionId, householdId, page = 1, limit = 10 } = dto;
+    const {
+      search,
+      category,
+      status,
+      reflectionId,
+      householdId,
+      page = 1,
+      limit = 10,
+    } = dto;
 
-    const query = this.floodDamageRepository.createQueryBuilder('fd')
+    const query = this.floodDamageRepository
+      .createQueryBuilder('fd')
       .leftJoinAndSelect('fd.reflection', 'reflection')
       .leftJoinAndSelect('fd.household', 'household')
       .leftJoinAndSelect('fd.creator', 'creator');
@@ -131,10 +139,7 @@ export class FloodDamagesService {
   }
 
   // ✏️ Cập nhật thiệt hại
-  async update(
-    id: number,
-    dto: UpdateFloodDamageDto,
-  ) {
+  async update(id: number, dto: UpdateFloodDamageDto) {
     const damage = await this.findOne(id);
 
     Object.assign(damage, dto);
@@ -159,9 +164,13 @@ export class FloodDamagesService {
 
   // 📊 Thống kê theo reflection
   async getStatsByReflection(reflectionId: number) {
-    const damages = await this.floodDamageRepository.findByReflectionId(reflectionId);
+    const damages =
+      await this.floodDamageRepository.findByReflectionId(reflectionId);
 
-    const totalValue = damages.reduce((sum, d) => sum + Number(d.estimatedValue), 0);
+    const totalValue = damages.reduce(
+      (sum, d) => sum + Number(d.estimatedValue),
+      0,
+    );
     const totalInjured = damages.reduce((sum, d) => sum + d.injuredCount, 0);
     const totalDeaths = damages.reduce((sum, d) => sum + d.deathCount, 0);
 
@@ -175,7 +184,7 @@ export class FloodDamagesService {
         damages,
       },
     };
-  } 
+  }
 
   // Cập nhật trạng thái thiệt hại
   async updateStatus(id: number, status: DamageStatus, reviewerId?: number) {
@@ -192,21 +201,30 @@ export class FloodDamagesService {
     const updatedDamage = await this.floodDamageRepository.save(damage);
 
     // 🔔 Gửi thông báo cho cư dân khi được xác nhận/từ chối
-    if (oldStatus !== status && [DamageStatus.APPROVED, DamageStatus.REJECTED].includes(status)) {
+    if (
+      oldStatus !== status &&
+      [DamageStatus.APPROVED, DamageStatus.REJECTED].includes(status)
+    ) {
       try {
-        const reviewerResponse = reviewerId ? await this.usersService.findOne(reviewerId) : null;
+        const reviewerResponse = reviewerId
+          ? await this.usersService.findOne(reviewerId)
+          : null;
         const reviewer = reviewerResponse?.data;
 
-        const residentResponse = await this.usersService.findOne(damage.createdBy);
+        const residentResponse = await this.usersService.findOne(
+          damage.createdBy,
+        );
         const resident = residentResponse?.data;
 
         if (resident) {
-          const title = status === DamageStatus.APPROVED
-            ? 'Thiệt hại đã được xác nhận'
-            : 'Thiệt hại bị từ chối';
-          const content = status === DamageStatus.APPROVED
-            ? `Thiệt hại của bạn đã được ${reviewer?.fullName || 'quản lý'} xác nhận. Giá trị: ${damage.estimatedValue || 0} VND.`
-            : `Thiệt hại của bạn đã bị ${reviewer?.fullName || 'quản lý'} từ chối. Vui lòng liên hệ để biết thêm chi tiết.`;
+          const title =
+            status === DamageStatus.APPROVED
+              ? 'Thiệt hại đã được xác nhận'
+              : 'Thiệt hại bị từ chối';
+          const content =
+            status === DamageStatus.APPROVED
+              ? `Thiệt hại của bạn đã được ${reviewer?.fullName || 'quản lý'} xác nhận. Giá trị: ${damage.estimatedValue || 0} VND.`
+              : `Thiệt hại của bạn đã bị ${reviewer?.fullName || 'quản lý'} từ chối. Vui lòng liên hệ để biết thêm chi tiết.`;
 
           await this.notificationsService.create({
             userId: resident.id,
@@ -217,7 +235,10 @@ export class FloodDamagesService {
           });
         }
       } catch (error) {
-        console.error('❌ Gửi thông báo cập nhật thiệt hại thất bại:', error.message);
+        console.error(
+          '❌ Gửi thông báo cập nhật thiệt hại thất bại:',
+          error.message,
+        );
       }
     }
 

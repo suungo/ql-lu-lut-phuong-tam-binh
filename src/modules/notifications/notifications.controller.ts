@@ -1,6 +1,19 @@
-import { Controller, Get, Param, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
@@ -15,8 +28,18 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Danh sách thông báo của tôi' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  findAll(@CurrentUser() user: any, @Query('page') page = 1, @Query('limit') limit = 10) {
+  findAll(
+    @CurrentUser() user: any,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
     return this.service.findByUser(user.id, +page, +limit);
+  }
+
+  @Get('vapid-public-key')
+  @ApiOperation({ summary: 'Lấy khóa công khai VAPID cho Web Push' })
+  getVapidPublicKey() {
+    return this.service.getVapidPublicKey();
   }
 
   @Get('unread-count')

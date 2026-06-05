@@ -16,7 +16,9 @@ export class Like extends BaseEntity {
   @Column({ name: 'reflection_id' })
   reflectionId: number;
 
-  @ManyToOne(() => Reflection, (reflection) => reflection.likes, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Reflection, (reflection) => reflection.likes, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'reflection_id' })
   reflection: Reflection;
 }

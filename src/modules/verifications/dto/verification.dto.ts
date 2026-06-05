@@ -1,6 +1,15 @@
 import { PartialType, ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { VerificationStatus, VerificationType } from '../enums/verification.enum';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import {
+  VerificationStatus,
+  VerificationType,
+} from '../enums/verification.enum';
 
 export class CreateVerificationDto {
   @ApiProperty()
@@ -26,6 +35,11 @@ export class CreateVerificationDto {
   @ApiProperty({ required: false })
   @IsOptional()
   referenceId?: number;
+
+  @ApiProperty({ enum: VerificationStatus, required: false })
+  @IsEnum(VerificationStatus)
+  @IsOptional()
+  status?: VerificationStatus;
 }
 
 export class UpdateVerificationDto extends PartialType(CreateVerificationDto) {

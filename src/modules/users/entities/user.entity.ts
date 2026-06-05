@@ -70,7 +70,10 @@ export class User extends BaseEntity {
   devices: Device[];
 
   // 🔗 One-to-Many: Cán bộ ghi nhận nhiều thiệt hại
-  @OneToMany(() => require('../../flood-damages/entities/flood-damage.entity').FloodDamage, (fd: FloodDamage) => fd.creator)
+  @OneToMany(
+    () =>
+      require('../../flood-damages/entities/flood-damage.entity').FloodDamage,
+    (fd: FloodDamage) => fd.creator,
+  )
   floodDamages: FloodDamage[];
-
 }

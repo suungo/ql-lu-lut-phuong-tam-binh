@@ -27,6 +27,12 @@ export class Device extends BaseEntity {
   @Column({ nullable: true })
   userAgent?: string;
 
+  @Column({ nullable: true })
+  expoPushToken?: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  webPushSub?: any;
+
   @Column({ default: true })
   isActive: boolean;
 

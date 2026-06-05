@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
@@ -14,7 +18,12 @@ export class CommentsService {
   ) {}
 
   // Tạo comment
-  async create(reflectionId: number, userId: number, content: string, parentId?: number) {
+  async create(
+    reflectionId: number,
+    userId: number,
+    content: string,
+    parentId?: number,
+  ) {
     // Kiểm tra phản ánh tồn tại
     const reflection = await this.reflectionRepository.findOne({
       where: { id: reflectionId },

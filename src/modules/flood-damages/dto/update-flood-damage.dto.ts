@@ -1,17 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { DamageCategory } from '../enums/damage-category.enum';
 import { DamageStatus } from '../enums/damage-status.enum';
 
 export class UpdateFloodDamageDto {
-  @ApiProperty({ enum: DamageCategory, example: DamageCategory.PROPERTY, required: false })
+  @ApiProperty({
+    enum: DamageCategory,
+    example: DamageCategory.PROPERTY,
+    required: false,
+  })
   @IsEnum(DamageCategory)
   @IsOptional()
   damageCategory?: DamageCategory;
@@ -39,7 +37,11 @@ export class UpdateFloodDamageDto {
   @IsOptional()
   deathCount?: number;
 
-  @ApiProperty({ enum: DamageStatus, example: DamageStatus.APPROVED, required: false })
+  @ApiProperty({
+    enum: DamageStatus,
+    example: DamageStatus.APPROVED,
+    required: false,
+  })
   @IsEnum(DamageStatus)
   @IsOptional()
   status?: DamageStatus;

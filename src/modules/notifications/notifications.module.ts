@@ -5,12 +5,10 @@ import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
 import { AuthsModule } from '../auths/auths.module';
+import { Device } from 'src/modules/users/entities/device.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Notification]),
-    AuthsModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Notification, Device]), AuthsModule],
   controllers: [NotificationsController],
   providers: [NotificationsService, NotificationsGateway],
   exports: [NotificationsService, NotificationsGateway],

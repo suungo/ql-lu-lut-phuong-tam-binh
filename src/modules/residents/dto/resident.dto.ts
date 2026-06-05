@@ -1,9 +1,21 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
-import { HasBusiness, HasChildren, HasElderly, HasPregnant, HasSick, HouseType } from '../enums/resident.enum';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import {
+  HasBusiness,
+  HasChildren,
+  HasElderly,
+  HasPregnant,
+  HasSick,
+  HouseType,
+} from '../enums/resident.enum';
 
 export class CreateResidentDto {
-  
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -27,12 +39,12 @@ export class CreateResidentDto {
   @ApiProperty()
   @IsString()
   @IsOptional()
-   address?: string; // Địa chỉ
+  address?: string; // Địa chỉ
 
   @ApiProperty({ required: false })
   @IsOptional()
   latitude: number; // Vĩ độ
-  
+
   @ApiProperty()
   @IsNotEmpty()
   longitude: number; // Kinh độ
@@ -50,7 +62,6 @@ export class CreateResidentDto {
   @IsEnum(HasElderly)
   @IsOptional()
   hasElderly: HasElderly; // Có người già
-  
 
   @ApiProperty({ enum: HasChildren, default: HasChildren.NO })
   @IsEnum(HasChildren)
@@ -70,18 +81,21 @@ export class CreateResidentDto {
   @ApiProperty({ enum: HouseType, default: HouseType.HOUSE_LEVEL_4 })
   @IsEnum(HouseType)
   @IsOptional()
-   houseType: HouseType; // Loại nhà
+  houseType: HouseType; // Loại nhà
 
   @ApiProperty({ required: false })
   @IsNumber()
   @IsOptional()
   numberOfFloors: number; // Số tầng
-  
+
   @ApiProperty({ enum: HasBusiness, default: HasBusiness.NO })
   @IsEnum(HasBusiness)
   @IsOptional()
   hasBusiness: HasBusiness; // Có kinh doanh
 
+  @ApiProperty({ required: false, default: true })
+  @IsOptional()
+  createAccount?: boolean; // Tự động tạo tài khoản người dùng cho hộ dân
 }
 
 export class UpdateResidentDto extends PartialType(CreateResidentDto) {}

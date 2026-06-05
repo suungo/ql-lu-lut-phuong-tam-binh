@@ -12,7 +12,10 @@ export class LoginDto {
   @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
   password: string;
 
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', required: false })
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   deviceId?: string;
@@ -26,4 +29,19 @@ export class LoginDto {
   @IsString()
   @IsOptional()
   deviceType?: string;
+
+  @ApiProperty({
+    example: 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  expoPushToken?: string;
+
+  @ApiProperty({
+    example: { endpoint: 'https://...', keys: { p256dh: '...', auth: '...' } },
+    required: false,
+  })
+  @IsOptional()
+  webPushSub?: any;
 }

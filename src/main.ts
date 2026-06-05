@@ -1,3 +1,4 @@
+process.env.TZ = 'UTC';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -25,7 +26,12 @@ async function bootstrap() {
     .setTitle('DA-TTTN API')
     .setDescription('Hệ thống quản lý tòa nhà / khu dân cư')
     .setVersion('1.0.0')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' })
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      in: 'header',
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -50,7 +56,9 @@ async function bootstrap() {
   );
 
   await app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on http://localhost:${PORT} and 0.0.0.0:${PORT}`);
+    console.log(
+      `🚀 Server running on http://localhost:${PORT} and 0.0.0.0:${PORT}`,
+    );
     console.log(`📚 Swagger docs: http://localhost:${PORT}/api/docs`);
   });
 }
