@@ -15,15 +15,19 @@ import { Resident } from 'src/modules/residents/entities/resident.entity';
 import { Role } from 'src/modules/roles/entities/role.entity';
 import { Device } from 'src/modules/users/entities/device.entity';
 import { User } from 'src/modules/users/entities/user.entity';
+import { ReputationHistory } from 'src/modules/users/entities/reputation-history.entity';
 import { Verification } from 'src/modules/verifications/entities/verification.entity';
 import { Province } from 'src/modules/administrative/entities/province.entity';
 import { Ward } from 'src/modules/administrative/entities/ward.entity';
 import { DispatchReport } from 'src/modules/dispatch-reports/entities/dispatch-report.entity';
+import { SiteVisit } from 'src/modules/statistics/entities/site-visit.entity';
+import { ResidentContact } from 'src/modules/resident-contacts/entities/resident-contact.entity';
 
 export const ALL_ENTITIES = [
   User,
   Role,
   Device,
+  ReputationHistory,
   Province,
   Ward,
   FloodDamage,
@@ -37,6 +41,8 @@ export const ALL_ENTITIES = [
   Conversation,
   Message,
   DispatchReport,
+  SiteVisit,
+  ResidentContact,
 ];
 
 export const getDatabaseConfig = (

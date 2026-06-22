@@ -19,8 +19,9 @@ import { ResidentsModule } from './modules/residents/residents.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UsersModule } from './modules/users/users.module';
-import { VerificationsModule } from './modules/verifications/verifications.module';
 import { AdministrativeModule } from './modules/administrative/administrative.module';
+import { StatisticsModule } from './modules/statistics/statistics.module';
+import { ResidentContactsModule } from './modules/resident-contacts/resident-contacts.module';
 
 // Seeds
 import { Role } from './modules/roles/entities/role.entity';
@@ -55,7 +56,6 @@ import { SeederRunner } from './seeds/seeder-runner';
     HumanResourcesModule,
     ResidentsModule,
     ReflectionsModule,
-    VerificationsModule,
     ChatsModule,
     NotificationsModule,
     CloudinaryModule,
@@ -63,6 +63,8 @@ import { SeederRunner } from './seeds/seeder-runner';
     FloodDamagesModule,
     AdministrativeModule,
     DispatchReportsModule,
+    StatisticsModule,
+    ResidentContactsModule,
   ],
   providers: [
     RoleSeederService,

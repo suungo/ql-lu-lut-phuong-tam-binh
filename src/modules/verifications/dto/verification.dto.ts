@@ -36,6 +36,11 @@ export class CreateVerificationDto {
   @IsOptional()
   referenceId?: number;
 
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  cccd?: string; // Số CCCD người dân khai khi đăng ký
+
   @ApiProperty({ enum: VerificationStatus, required: false })
   @IsEnum(VerificationStatus)
   @IsOptional()

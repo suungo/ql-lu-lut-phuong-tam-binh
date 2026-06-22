@@ -7,10 +7,10 @@ export class LoginDto {
   @IsNotEmpty({ message: 'Số điện thoại không được để trống' })
   phoneNumber: string;
 
-  @ApiProperty({ example: 'Password@123' })
+  @ApiProperty({ example: 'Password@123', required: false })
   @IsString()
-  @IsNotEmpty({ message: 'Mật khẩu không được để trống' })
-  password: string;
+  @IsOptional()
+  password?: string;
 
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440000',

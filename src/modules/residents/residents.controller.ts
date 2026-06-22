@@ -33,7 +33,7 @@ import {
 } from './enums/resident.enum';
 import { ResidentsService } from './residents.service';
 
-@ApiTags('Cư dân (Residents)')
+@ApiTags('Người dân (Residents)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller()
@@ -42,7 +42,7 @@ export class ResidentsController {
 
   @Post()
   @Roles(RoleCode.ADMIN, RoleCode.MANAGER, RoleCode.STAFF)
-  @ApiOperation({ summary: 'Thêm cư dân mới' })
+  @ApiOperation({ summary: 'Thêm người dân mới' })
   create(@Body() dto: CreateResidentDto, @CurrentUser() user: any) {
     return this.service.create(dto, user);
   }
@@ -56,7 +56,7 @@ export class ResidentsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách cư dân' })
+  @ApiOperation({ summary: 'Danh sách người dân' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'keyword', required: false })
@@ -93,20 +93,20 @@ export class ResidentsController {
   }
 
   @Get('me')
-  @ApiOperation({ summary: 'Thông tin cư dân của tôi' })
+  @ApiOperation({ summary: 'Thông tin người dân của tôi' })
   findMyResident(@CurrentUser() user: any) {
     return this.service.findMyResident(user.id);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Chi tiết cư dân' })
+  @ApiOperation({ summary: 'Chi tiết người dân' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
 
   @Patch(':id')
   @Roles(RoleCode.ADMIN, RoleCode.MANAGER)
-  @ApiOperation({ summary: 'Cập nhật cư dân' })
+  @ApiOperation({ summary: 'Cập nhật người dân' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateResidentDto,
@@ -116,7 +116,7 @@ export class ResidentsController {
 
   @Delete(':id')
   @Roles(RoleCode.ADMIN, RoleCode.MANAGER)
-  @ApiOperation({ summary: 'Xóa cư dân' })
+  @ApiOperation({ summary: 'Xóa người dân' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.service.remove(id);
   }

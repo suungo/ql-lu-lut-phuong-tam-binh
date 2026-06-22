@@ -203,4 +203,12 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         .emit('updateSessionList', session);
     }
   }
+
+  public getActiveUsersCount(): number {
+    const uniqueUserIds = new Set<number>();
+    for (const user of this.activeUsers.values()) {
+      uniqueUserIds.add(user.userId);
+    }
+    return uniqueUserIds.size;
+  }
 }

@@ -9,10 +9,13 @@ import {
   Put,
   Query,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RoleCode } from 'src/common/enums/role-code.enum';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { CreateFloodDamageDto } from './dto/create-flood-damage.dto';
 import { FilterFloodDamageDto } from './dto/filter-flood-damage.dto';
 import { UpdateFloodDamageDto } from './dto/update-flood-damage.dto';
@@ -21,6 +24,7 @@ import { FloodDamagesService } from './floodDamages.service';
 
 @ApiTags('Flood Damages')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('flood-damages')
 export class FloodDamagesController {
   constructor(private readonly floodDamagesService: FloodDamagesService) {}
@@ -28,23 +32,25 @@ export class FloodDamagesController {
   // ➕ Tạo thiệt hại mới
   @Post()
   @ApiOperation({ summary: 'Tạo thiệt hại mới' })
-  create(@Body() dto: CreateFloodDamageDto, @Request() req) {
+  async create(@Body() dto: CreateFloodDamageDto, @Request() req) {
     const userId = req.user?.sub;
-    return this.floodDamagesService.create(dto, userId);
+    const damage = await this.floodDamagesService.create(dto, userId);
+    return { statusCode: 201, data: damage };
   }
 
   // 📋 Lấy danh sách thiệt hại
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách thiệt hại (có filter, pagination)' })
-  findAll(@Query() dto: FilterFloodDamageDto) {
-    return this.floodDamagesService.findAll(dto);
+  findAll(@Query() dto: FilterFloodDamageDto, @Request() req) {
+    return this.floodDamagesService.findAll(dto, req.user);
   }
 
   // 🔍 Chi tiết thiệt hại
   @Get(':id')
   @ApiOperation({ summary: 'Lấy chi tiết thiệt hại theo ID' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.floodDamagesService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    const damage = await this.floodDamagesService.findOne(id);
+    return { statusCode: 200, data: damage };
   }
 
   // ✏️ Cập nhật thiệt hại

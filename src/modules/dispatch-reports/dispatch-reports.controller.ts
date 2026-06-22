@@ -31,7 +31,7 @@ import {
   DispatchReportType,
 } from './enums/dispatch-report.enum';
 
-@ApiTags('Quản lý điều chuyển (Dispatch Reports)')
+@ApiTags('Quản lý yêu cầu Tuần tra (Patrol Requests)')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -55,8 +55,8 @@ export class DispatchReportsController {
 
   @Post('to-patrol')
   @UseGuards(RolesGuard)
-  @Roles(RoleCode.INSPECTOR)
-  @ApiOperation({ summary: '[INSPECTOR] Tạo điều chuyển cho Tuần tra' })
+  @Roles(RoleCode.MANAGER, RoleCode.ADMIN)
+  @ApiOperation({ summary: '[MANAGER] Tạo yêu cầu Tuần tra' })
   createToPatrol(
     @Body() dto: CreateDispatchReportDto,
     @CurrentUser() user: any,
@@ -71,9 +71,17 @@ export class DispatchReportsController {
   @Patch(':id/accept')
   @UseGuards(RolesGuard)
   @Roles(RoleCode.INSPECTOR, RoleCode.PATROL)
-  @ApiOperation({ summary: 'Xác nhận nhận điều chuyển' })
+  @ApiOperation({ summary: 'Xác nhận nhận yêu cầu Tuần tra' })
   accept(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.service.acceptDispatch(id, user.id);
+  }
+
+  @Post(':id/nudge')
+  @UseGuards(RolesGuard)
+  @Roles(RoleCode.INSPECTOR, RoleCode.MANAGER, RoleCode.ADMIN)
+  @ApiOperation({ summary: 'Thúc giục cán bộ xử lý' })
+  nudge(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.service.nudgeDispatch(id, user.id);
   }
 
   @Patch(':id')
@@ -91,18 +99,20 @@ export class DispatchReportsController {
   // ══════════════════════════════════════════════════════════════════════
 
   @Get()
-  @ApiOperation({ summary: 'Danh sách biên bản điều chuyển' })
+  @ApiOperation({ summary: 'Danh sách yêu cầu Tuần tra' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'status', enum: DispatchReportStatus, required: false })
   @ApiQuery({ name: 'type', enum: DispatchReportType, required: false })
   @ApiQuery({ name: 'reflectionId', required: false })
+  @ApiQuery({ name: 'search', required: false })
   findAll(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('status') status?: DispatchReportStatus,
     @Query('type') type?: DispatchReportType,
     @Query('reflectionId') reflectionId?: number,
+    @Query('search') search?: string,
     @CurrentUser() user?: any,
   ) {
     // INSPECTOR chỉ thấy dispatch giao cho mình hoặc do mình tạo
@@ -110,6 +120,7 @@ export class DispatchReportsController {
     if (status) filters.status = status;
     if (type) filters.type = type;
     if (reflectionId) filters.reflectionId = +reflectionId;
+    if (search) filters.search = search;
 
     const roleCode = user?.roleCode;
     if (roleCode === RoleCode.INSPECTOR) {
@@ -123,7 +134,7 @@ export class DispatchReportsController {
   }
 
   @Get('my')
-  @ApiOperation({ summary: 'Danh sách điều chuyển của tôi' })
+  @ApiOperation({ summary: 'Danh sách yêu cầu Tuần tra của tôi' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   findMy(
@@ -141,7 +152,7 @@ export class DispatchReportsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Chi tiết biên bản điều chuyển' })
+  @ApiOperation({ summary: 'Chi tiết yêu cầu Tuần tra' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
@@ -149,7 +160,7 @@ export class DispatchReportsController {
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles(RoleCode.ADMIN)
-  @ApiOperation({ summary: 'Xóa biên bản điều chuyển' })
+  @ApiOperation({ summary: 'Xóa yêu cầu Tuần tra' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.service.remove(id);
   }

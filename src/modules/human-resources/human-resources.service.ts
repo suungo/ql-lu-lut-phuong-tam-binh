@@ -12,6 +12,8 @@ import { HumanResourceStatus } from './enums/human-resource.enum';
 import { AuthsService } from '../auths/auths.service';
 import { RoleCode } from 'src/common/enums/role-code.enum';
 import { NotificationsService } from '../notifications/notifications.service';
+import { User } from '../users/entities/user.entity';
+import { Role } from '../roles/entities/role.entity';
 
 @Injectable()
 export class HumanResourcesService {
@@ -120,35 +122,41 @@ export class HumanResourcesService {
     currentUser?: any,
     keyword?: string, // optional
     status?: HumanResourceStatus, // ← Thêm ? để thành optional
+    roleCode?: string, // optional
   ) {
-    const baseConditions: any = {};
+    const qb = this.repo.createQueryBuilder('hr');
 
-    // Nếu là MANAGER thì chỉ xem dữ liệu mình tạo
+    // Nếu lọc theo roleCode thì join bảng User và Role
+    if (roleCode) {
+      qb.innerJoin(User, 'u', 'u.id = hr.userId')
+        .innerJoin(Role, 'role', 'role.id = u.roleId')
+        .andWhere('role.roleCode = :roleCode', { roleCode });
+    }
+
+    // Nếu là MANAGER thì xem nhân sự mình tạo hoặc hệ thống (id: 1) tạo
     if (currentUser?.roleCode === RoleCode.MANAGER) {
-      baseConditions.createdBy = currentUser.id;
+      qb.andWhere('hr.createdBy IN (:...createdByIds)', {
+        createdByIds: [currentUser.id, 1],
+      });
     }
 
     // Xử lý lọc theo status
     if (status) {
-      baseConditions.status = status;
+      qb.andWhere('hr.status = :status', { status });
     }
 
-    let where: any = baseConditions;
-
-    // Xử lý tìm kiếm theo keyword (nếu có keyword, where sẽ là mảng các điều kiện OR)
+    // Xử lý tìm kiếm theo keyword
     if (keyword && keyword.trim() !== '') {
-      where = [
-        { ...baseConditions, fullName: Like(`%${keyword.trim()}%`) },
-        { ...baseConditions, employeeCode: Like(`%${keyword.trim()}%`) },
-      ];
+      qb.andWhere('(hr.fullName LIKE :kw OR hr.employeeCode LIKE :kw)', {
+        kw: `%${keyword.trim()}%`,
+      });
     }
 
-    const [data, total] = await this.repo.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+    qb.orderBy('hr.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
 
     return {
       statusCode: 200,

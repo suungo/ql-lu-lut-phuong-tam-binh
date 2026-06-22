@@ -9,6 +9,8 @@ import { FloodDamage } from './entities/flood-damage.entity';
 import { DamageStatus } from './enums/damage-status.enum';
 import { FloodDamageRepository } from './repositories/flood-damage.repository';
 
+import { Resident } from '../residents/entities/resident.entity';
+
 @Injectable()
 export class FloodDamagesService {
   constructor(
@@ -22,8 +24,22 @@ export class FloodDamagesService {
     dto: CreateFloodDamageDto,
     userId: number,
   ): Promise<FloodDamage> {
+    let householdId = dto.householdId;
+    if (!householdId) {
+      try {
+        const residentRepo = this.floodDamageRepository.manager.getRepository(Resident);
+        const resident = await residentRepo.findOne({ where: { userId } });
+        if (resident) {
+          householdId = resident.id;
+        }
+      } catch (err) {
+        console.error('Lỗi khi truy vấn thông tin hộ dân để liên kết thiệt hại:', err);
+      }
+    }
+
     const floodDamage = this.floodDamageRepository.create({
       ...dto,
+      householdId,
       createdBy: userId,
       injuredCount: dto.injuredCount || 0,
       deathCount: dto.deathCount || 0,
@@ -43,8 +59,8 @@ export class FloodDamagesService {
       const allManagers = [...admins, ...managers];
 
       // Nội dung thông báo
-      const title = 'Cư dân cập nhật thiệt hại mới';
-      const content = `${creator?.fullName || 'Cư dân'} vừa cập nhật thiệt hại mới. Loại: ${dto.damageCategory}, Giá trị: ${dto.estimatedValue || 0} VND. Vui lòng kiểm tra và xác nhận.`;
+      const title = 'Người dân cập nhật thiệt hại mới';
+      const content = `${creator?.fullName || 'Người dân'} vừa cập nhật thiệt hại mới. Loại: ${dto.damageCategory}, Giá trị: ${dto.estimatedValue || 0} VND. Vui lòng kiểm tra và xác nhận.`;
 
       // Gửi thông báo cho từng quản lý
       for (const manager of allManagers) {
@@ -64,7 +80,7 @@ export class FloodDamagesService {
   }
 
   // 📋 Lấy danh sách thiệt hại (có filter, pagination)
-  async findAll(dto: FilterFloodDamageDto) {
+  async findAll(dto: FilterFloodDamageDto, currentUser?: any) {
     const {
       search,
       category,
@@ -81,6 +97,19 @@ export class FloodDamagesService {
       .leftJoinAndSelect('fd.household', 'household')
       .leftJoinAndSelect('fd.creator', 'creator');
 
+    // Nếu người dùng đăng nhập là cư dân (RESIDENT), chỉ cho phép lấy thiệt hại do chính họ tạo (createdBy),
+    // hoặc thiệt hại liên quan đến phản ánh do họ gửi (reflection.userId),
+    // hoặc thiệt hại liên quan đến hộ dân của họ (household.userId)
+    if (currentUser && currentUser.roleCode === RoleCode.RESIDENT) {
+      query.andWhere(
+        '(fd.createdBy = :currentUserId OR reflection.userId = :currentUserId OR household.userId = :currentUserId)',
+        { currentUserId: currentUser.id },
+      );
+    } else if (householdId) {
+      // Filter theo householdId được yêu cầu (đối với admin/manager)
+      query.andWhere('fd.householdId = :householdId', { householdId });
+    }
+
     // Filter theo category
     if (category) {
       query.andWhere('fd.damageCategory = :category', { category });
@@ -94,11 +123,6 @@ export class FloodDamagesService {
     // Filter theo reflectionId
     if (reflectionId) {
       query.andWhere('fd.reflectionId = :reflectionId', { reflectionId });
-    }
-
-    // Filter theo householdId
-    if (householdId) {
-      query.andWhere('fd.householdId = :householdId', { householdId });
     }
 
     // Search theo description
@@ -200,7 +224,7 @@ export class FloodDamagesService {
 
     const updatedDamage = await this.floodDamageRepository.save(damage);
 
-    // 🔔 Gửi thông báo cho cư dân khi được xác nhận/từ chối
+    // 🔔 Gửi thông báo cho người dân khi được xác nhận/từ chối
     if (
       oldStatus !== status &&
       [DamageStatus.APPROVED, DamageStatus.REJECTED].includes(status)

@@ -37,8 +37,8 @@ const defaultRoles = [
   },
   {
     roleCode: RoleCode.RESIDENT,
-    roleName: 'Cư dân',
-    description: 'Cư dân sinh sống tại địa bàn',
+    roleName: 'Người dân',
+    description: 'Người dân sinh sống tại địa bàn',
   },
 ];
 

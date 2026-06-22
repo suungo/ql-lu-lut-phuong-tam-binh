@@ -41,6 +41,12 @@ export class User extends BaseEntity {
   @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
   status: UserStatus;
 
+  @Column({ default: 10 })
+  reputationPoints: number;
+
+  @Column({ nullable: true, name: 'reputation_blocked_until' })
+  reputationBlockedUntil?: Date;
+
   @Column({ nullable: true, name: 'role_id' })
   roleId: number;
 

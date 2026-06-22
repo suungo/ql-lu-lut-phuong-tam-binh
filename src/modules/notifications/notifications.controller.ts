@@ -6,6 +6,8 @@ import {
   Patch,
   Query,
   UseGuards,
+  Post,
+  Body,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import {
@@ -16,6 +18,9 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RoleCode } from 'src/common/enums/role-code.enum';
 
 @ApiTags('Thông báo (Notifications)')
 @ApiBearerAuth()
@@ -58,5 +63,39 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Đánh dấu tất cả đã đọc' })
   markAllRead(@CurrentUser() user: any) {
     return this.service.markAllRead(user.id);
+  }
+
+  @Get('admin-list')
+  @UseGuards(RolesGuard)
+  @Roles(RoleCode.ADMIN, RoleCode.MANAGER)
+  @ApiOperation({
+    summary: 'Danh sách tất cả thông báo hệ thống (Admin/Manager)',
+  })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  findAdminList(@Query('page') page = 1, @Query('limit') limit = 10) {
+    return this.service.findAllSystem(+page, +limit);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Chi tiết thông báo' })
+  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
+    return this.service.findOne(id, user.id);
+  }
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles(RoleCode.ADMIN, RoleCode.MANAGER)
+  @ApiOperation({ summary: 'Gửi thông báo mới (Admin/Manager)' })
+  createNotification(
+    @Body()
+    dto: {
+      userId?: number;
+      roleCode?: string;
+      title: string;
+      content: string;
+    },
+  ) {
+    return this.service.createBulkOrSingle(dto);
   }
 }

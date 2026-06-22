@@ -12,14 +12,17 @@ import { FloodDamagesModule } from '../flood-damages/floodDamages.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ResidentsModule } from '../residents/residents.module';
 import { UsersModule } from '../users/users.module';
+import { OllamaModule } from '../ollama/ollama.module';
+import { DispatchReport } from '../dispatch-reports/entities/dispatch-report.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Reflection, Like, Comment]),
+    TypeOrmModule.forFeature([Reflection, Like, Comment, DispatchReport]),
     FloodDamagesModule,
     NotificationsModule,
     ResidentsModule,
     UsersModule,
+    OllamaModule,
   ],
   controllers: [ReflectionsController],
   providers: [ReflectionsService, LikesService, CommentsService],

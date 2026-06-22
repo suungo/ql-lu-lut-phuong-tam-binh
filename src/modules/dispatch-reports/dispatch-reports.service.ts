@@ -89,6 +89,7 @@ export class DispatchReportsService {
       title: dto.title || `Điều chuyển phản ánh: ${reflection.title}`,
       description: dto.description,
       note: dto.note,
+      expectedTime: dto.expectedTime,
       createdBy: managerId,
     });
 
@@ -119,7 +120,7 @@ export class DispatchReportsService {
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // TẠO ĐIỀU CHUYỂN (INSPECTOR → PATROL)
+  // TẠO YÊU CẦU TUẦN TRA (MANAGER → PATROL)
   // ══════════════════════════════════════════════════════════════════════
 
   async createDispatchToPatrol(
@@ -132,12 +133,14 @@ export class DispatchReportsService {
     if (!reflection) throw new NotFoundException('Không tìm thấy phản ánh');
 
     if (
-      ![ReflectionStatus.ASSIGNED, ReflectionStatus.IN_PROGRESS].includes(
-        reflection.status,
-      )
+      ![
+        ReflectionStatus.VERIFIED,
+        ReflectionStatus.ASSIGNED,
+        ReflectionStatus.IN_PROGRESS,
+      ].includes(reflection.status)
     ) {
       throw new BadRequestException(
-        'Phản ánh chưa được giao hoặc không phù hợp để điều Tuần tra',
+        'Phản ánh chưa được xác minh hoặc không phù hợp để điều Tuần tra',
       );
     }
 
@@ -152,61 +155,66 @@ export class DispatchReportsService {
 
     if (existingPending) {
       const now = new Date();
-      if (now < existingPending.expiredAt) {
+      if (existingPending.expiredAt && now < existingPending.expiredAt) {
         throw new BadRequestException(
-          'Đang trong thời gian chờ xác nhận (5 phút). Không thể tạo điều chuyển mới.',
+          'Đang trong thời gian chờ xác nhận (5 phút). Không thể tạo yêu cầu tuần tra mới.',
         );
       }
       existingPending.status = DispatchReportStatus.EXPIRED;
       await this.repo.save(existingPending);
     }
 
+    const isCustom = !!dto.customHandler;
     const now = new Date();
-    const expiredAt = new Date(now.getTime() + 5 * 60 * 1000);
     const code = `DR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const report = this.repo.create({
       code,
       type: DispatchReportType.INSPECTOR_TO_PATROL,
-      status: DispatchReportStatus.PENDING,
+      status: isCustom ? DispatchReportStatus.COMPLETED : DispatchReportStatus.PENDING,
       reflectionId: dto.reflectionId,
       assignedBy: inspectorId,
-      assignedTo: dto.assignedTo,
+      assignedTo: isCustom ? null : (dto.assignedTo || null),
+      customHandler: isCustom ? dto.customHandler : null,
       assignedAt: now,
-      expiredAt,
-      title: dto.title || `Điều chuyển tuần tra: ${reflection.title}`,
+      completedAt: isCustom ? now : null,
+      expiredAt: null, // Bỏ thời gian đếm ngược 5p
+      title: dto.title || `Yêu cầu tuần tra: ${reflection.title}`,
       description: dto.description,
       note: dto.note,
+      expectedTime: dto.expectedTime,
       createdBy: inspectorId,
     });
 
     const saved = await this.repo.save(report);
 
     // Cập nhật reflection
-    reflection.status = ReflectionStatus.IN_PROGRESS;
-    reflection.patrolId = dto.assignedTo;
+    reflection.status = isCustom ? ReflectionStatus.RESOLVED : ReflectionStatus.IN_PROGRESS;
+    reflection.patrolId = isCustom ? null : (dto.assignedTo || null);
     reflection.dispatchedAt = now;
-    reflection.patrolAcceptedAt = null;
+    reflection.patrolAcceptedAt = isCustom ? now : null;
     await this.reflectionRepo.save(reflection);
 
-    // Thông báo cho PATROL
-    await this.notificationsService.create({
-      userId: dto.assignedTo,
-      title: 'Nhiệm vụ tuần tra mới',
-      content: `Hậu kiểm đã điều bạn xử lý sự cố "${reflection.title}" tại ${reflection.address || 'vị trí không xác định'}. Vui lòng xác nhận trong vòng 5 phút.`,
-      type: 'DISPATCH_NEW',
-      referenceId: reflection.id,
-    });
+    // Thông báo cho PATROL nếu không phải là trường hợp xử lý ngoài hệ thống (custom)
+    if (!isCustom && dto.assignedTo) {
+      await this.notificationsService.create({
+        userId: dto.assignedTo,
+        title: 'Nhiệm vụ tuần tra mới',
+        content: `Quản lý đã yêu cầu bạn xử lý sự cố "${reflection.title}" tại ${reflection.address || 'vị trí không xác định'}. Vui lòng xác nhận nhận việc.`,
+        type: 'DISPATCH_NEW',
+        referenceId: reflection.id,
+      });
+    }
 
     return {
       statusCode: 201,
-      message: 'Tạo điều chuyển Tuần tra thành công',
+      message: isCustom ? 'Ghi nhận xử lý hoàn thành thành công' : 'Tạo yêu cầu Tuần tra thành công',
       data: saved,
     };
   }
 
   // ══════════════════════════════════════════════════════════════════════
-  // XÁC NHẬN ĐIỀU CHUYỂN
+  // XÁC NHẬN YÊU CẦU TUẦN TRA
   // ══════════════════════════════════════════════════════════════════════
 
   async acceptDispatch(id: number, userId: number) {
@@ -226,7 +234,7 @@ export class DispatchReportsService {
       report.status = DispatchReportStatus.EXPIRED;
       await this.repo.save(report);
       throw new BadRequestException(
-        'Đã quá thời hạn xác nhận (5 phút). Điều chuyển đã bị hủy.',
+        'Đã quá thời hạn xác nhận (5 phút). Yêu cầu tuần tra đã bị hủy.',
       );
     }
 
@@ -246,8 +254,8 @@ export class DispatchReportsService {
     // Thông báo người giao
     await this.notificationsService.create({
       userId: report.assignedBy,
-      title: 'Điều chuyển đã được xác nhận',
-      content: `Cán bộ đã xác nhận điều chuyển phản ánh "${reflection.title}".`,
+      title: 'Yêu cầu tuần tra đã được xác nhận',
+      content: `Cán bộ đã xác nhận yêu cầu tuần tra phản ánh "${reflection.title}".`,
       type: 'DISPATCH_ACCEPTED',
       referenceId: reflection.id,
     });
@@ -284,6 +292,7 @@ export class DispatchReportsService {
     if (dto.attachments !== undefined) report.attachments = dto.attachments;
     if (dto.title !== undefined) report.title = dto.title;
     if (dto.description !== undefined) report.description = dto.description;
+    if (dto.expectedTime !== undefined) report.expectedTime = dto.expectedTime;
 
     if (dto.status) {
       report.status = dto.status;
@@ -326,6 +335,7 @@ export class DispatchReportsService {
       reflectionId?: number;
       assignedTo?: number;
       assignedBy?: number;
+      search?: string;
     },
   ) {
     const qb = this.repo
@@ -333,7 +343,13 @@ export class DispatchReportsService {
       .leftJoinAndSelect('dr.reflection', 'reflection')
       .leftJoinAndSelect('dr.assigner', 'assigner')
       .leftJoinAndSelect('dr.assignee', 'assignee')
-      .leftJoinAndSelect('reflection.user', 'reflectionUser');
+      .leftJoinAndSelect('reflection.user', 'reflectionUser')
+      .addSelect(`CASE reflection.priority 
+        WHEN 'HIGH' THEN 1 
+        WHEN 'MEDIUM' THEN 2 
+        WHEN 'LOW' THEN 3 
+        ELSE 4 
+      END`, 'priority_order');
 
     if (filters?.status) {
       qb.andWhere('dr.status = :status', { status: filters.status });
@@ -356,6 +372,12 @@ export class DispatchReportsService {
         assignedBy: filters.assignedBy,
       });
     }
+    if (filters?.search) {
+      qb.andWhere(
+        '(LOWER(dr.code) LIKE LOWER(:search) OR LOWER(dr.title) LIKE LOWER(:search) OR LOWER(dr.description) LIKE LOWER(:search) OR LOWER(reflection.title) LIKE LOWER(:search))',
+        { search: `%${filters.search}%` },
+      );
+    }
 
     // Auto-expire: cập nhật các record pending đã quá hạn
     await this.repo
@@ -363,10 +385,11 @@ export class DispatchReportsService {
       .update(DispatchReport)
       .set({ status: DispatchReportStatus.EXPIRED })
       .where('status = :status', { status: DispatchReportStatus.PENDING })
-      .andWhere('expired_at < :now', { now: new Date() })
+      .andWhere('expired_at IS NOT NULL AND expired_at < :now', { now: new Date() })
       .execute();
 
-    qb.orderBy('dr.createdAt', 'DESC')
+    qb.orderBy('priority_order', 'ASC')
+      .addOrderBy('dr.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
@@ -403,5 +426,34 @@ export class DispatchReportsService {
     if (!report) throw new NotFoundException('Không tìm thấy biên bản');
     await this.repo.softDelete(id);
     return { statusCode: 200, message: 'Xóa thành công' };
+  }
+
+  async nudgeDispatch(id: number, senderId: number) {
+    const report = await this.repo.findOne({
+      where: { id },
+      relations: ['reflection'],
+    });
+    if (!report) throw new NotFoundException('Không tìm thấy biên bản');
+
+    if (!report.assignedTo) {
+      throw new BadRequestException(
+        'Yêu cầu tuần tra chưa được bàn giao cho cán bộ nào',
+      );
+    }
+
+    // Gửi thông báo cho người nhận (assignedTo)
+    await this.notificationsService.create({
+      userId: report.assignedTo,
+      title: 'Yêu cầu cập nhật tiến độ!',
+      content: `Yêu cầu xử lý sự cố "${report.reflection?.title || 'yêu cầu tuần tra'}" cần được thực hiện khẩn trương. Vui lòng cập nhật trạng thái báo cáo.`,
+      type: 'DISPATCH_NUDGE',
+      referenceId: report.reflectionId,
+    });
+
+    return {
+      statusCode: 200,
+      message: 'Đã gửi yêu cầu thúc giục cán bộ xử lý',
+      data: report,
+    };
   }
 }

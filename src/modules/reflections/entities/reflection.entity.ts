@@ -78,6 +78,18 @@ export class Reflection extends BaseEntity {
   @Column({ nullable: true, name: 'managed_by' })
   managedBy?: number;
 
+  @Column({ default: false, name: 'is_published_on_map' })
+  isPublishedOnMap: boolean;
+
+  @Column({ type: 'timestamp', nullable: true, name: 'published_at' })
+  publishedAt?: Date;
+
+  @Column({ nullable: true, name: 'original_reflection_id' })
+  originalReflectionId?: number;
+
+  @Column({ type: 'int', nullable: true })
+  rating?: number;
+
   // ── WORKFLOW FIELDS ──────────────────────────────────────────────────
 
   /** ID cán bộ tăng cường xác minh (OFFICER) */

@@ -23,6 +23,9 @@ export class NotificationsGateway
   @WebSocketServer()
   server: Server;
 
+  // Track connected users (socketId -> userId)
+  private activeUserIds = new Map<string, number>();
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -44,6 +47,8 @@ export class NotificationsGateway
 
       // Join a room specific to the user ID
       client.join(`user_${payload.sub}`);
+      this.activeUserIds.set(client.id, payload.sub);
+      this.broadcastActiveUsersCount();
       console.log(`User ${payload.sub} connected to notifications`);
     } catch (error) {
       console.log('Notification connection error:', error.message);
@@ -52,10 +57,25 @@ export class NotificationsGateway
   }
 
   handleDisconnect(client: Socket) {
+    this.activeUserIds.delete(client.id);
+    this.broadcastActiveUsersCount();
     console.log(`Client disconnected from notifications: ${client.id}`);
   }
 
   sendNotificationToUser(userId: number, notification: any) {
     this.server.to(`user_${userId}`).emit('newNotification', notification);
+  }
+
+  private broadcastActiveUsersCount() {
+    const count = this.getActiveUsersCount();
+    this.server.emit('activeUsersCountUpdated', count);
+  }
+
+  public getActiveUsersCount(): number {
+    const uniqueUserIds = new Set<number>();
+    for (const userId of this.activeUserIds.values()) {
+      uniqueUserIds.add(userId);
+    }
+    return uniqueUserIds.size;
   }
 }

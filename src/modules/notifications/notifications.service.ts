@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from './entities/notification.entity';
@@ -7,6 +7,7 @@ import { Device } from 'src/modules/users/entities/device.entity';
 import { ConfigService } from '@nestjs/config';
 import { Expo } from 'expo-server-sdk';
 import * as webpush from 'web-push';
+import { User } from 'src/modules/users/entities/user.entity';
 
 @Injectable()
 export class NotificationsService {
@@ -129,6 +130,16 @@ export class NotificationsService {
     return saved;
   }
 
+  sendPatrolLocationUpdate(reflectionId: number, lat: number, lng: number) {
+    if (this.notificationsGateway && this.notificationsGateway.server) {
+      this.notificationsGateway.server.emit('patrol_location_updated', {
+        id: reflectionId,
+        lat,
+        lng,
+      });
+    }
+  }
+
   async findByUser(userId: number, page = 1, limit = 10) {
     const [data, total] = await this.repo.findAndCount({
       where: { userId },
@@ -144,6 +155,12 @@ export class NotificationsService {
     };
   }
 
+  async findOne(id: number, userId: number) {
+    const notification = await this.repo.findOne({ where: { id, userId } });
+    if (!notification) throw new NotFoundException('Không tìm thấy thông báo');
+    return { statusCode: 200, message: 'Thành công', data: notification };
+  }
+
   async markRead(id: number, userId: number) {
     await this.repo.update({ id, userId }, { isRead: true });
     return { statusCode: 200, message: 'Đánh dấu đã đọc' };
@@ -157,5 +174,76 @@ export class NotificationsService {
   async countUnread(userId: number) {
     const count = await this.repo.count({ where: { userId, isRead: false } });
     return { statusCode: 200, message: 'Thành công', data: { unread: count } };
+  }
+
+  async findAllSystem(page = 1, limit = 10) {
+    const [data, total] = await this.repo.findAndCount({
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return {
+      statusCode: 200,
+      message: 'Thành công',
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async createBulkOrSingle(dto: {
+    userId?: number;
+    roleCode?: string;
+    title: string;
+    content: string;
+  }) {
+    const userRepo = this.repo.manager.getRepository(User);
+    if (dto.userId) {
+      const user = await userRepo.findOne({ where: { id: dto.userId } });
+      if (!user) throw new Error('Không tìm thấy người dùng');
+      const saved = await this.create({
+        userId: dto.userId,
+        title: dto.title,
+        content: dto.content,
+        type: 'SYSTEM',
+      });
+      return {
+        statusCode: 201,
+        message: 'Đã gửi thông báo tới người dùng',
+        data: saved,
+      };
+    }
+    if (dto.roleCode) {
+      const users = await userRepo.find({
+        where: { role: { roleCode: dto.roleCode as any } },
+        relations: ['role'],
+      });
+      for (const u of users) {
+        await this.create({
+          userId: u.id,
+          title: dto.title,
+          content: dto.content,
+          type: 'SYSTEM',
+        });
+      }
+      return {
+        statusCode: 201,
+        message: 'Đã gửi thông báo tới nhóm vai trò ' + dto.roleCode,
+      };
+    }
+    // Send to all
+    const users = await userRepo.find();
+    for (const u of users) {
+      await this.create({
+        userId: u.id,
+        title: dto.title,
+        content: dto.content,
+        type: 'SYSTEM',
+      });
+    }
+    return {
+      statusCode: 201,
+      message: 'Đã gửi thông báo tới tất cả người dùng',
+    };
   }
 }

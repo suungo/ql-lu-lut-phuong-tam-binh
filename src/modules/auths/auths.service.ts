@@ -41,13 +41,17 @@ export class AuthsService {
   async register(dto: RegisterDto) {
     const existing = await this.userRepository.findOne({
       where: { phoneNumber: dto.phoneNumber },
+      withDeleted: true,
     });
     if (existing) {
+      if (existing.deletedAt) {
+        throw new BadRequestException('Số điện thoại đã tồn tại trong hệ thống (đã bị xóa tạm thời)');
+      }
       throw new BadRequestException('Số điện thoại đã được sử dụng');
     }
 
     const residentRole = await this.roleRepository.findOne({
-      where: { roleCode: RoleCode.MANAGER },
+      where: { roleCode: RoleCode.RESIDENT },
     });
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -80,8 +84,12 @@ export class AuthsService {
     // Kiểm tra xem số điện thoại hoặc email đã tồn tại chưa
     const existing = await this.userRepository.findOne({
       where: [{ phoneNumber: data.phoneNumber }, { email: data.email }],
+      withDeleted: true,
     });
     if (existing) {
+      if (existing.deletedAt) {
+        throw new BadRequestException('Số điện thoại hoặc Email đã tồn tại trong hệ thống (đã bị xóa tạm thời)');
+      }
       throw new BadRequestException(
         'Số điện thoại hoặc Email đã được sử dụng cho một tài khoản khác',
       );
@@ -154,12 +162,54 @@ export class AuthsService {
     });
 
     if (!user) {
+      try {
+        const isProd = this.configService.get('NODE_ENV') === 'production';
+        const verificationBaseUrl = isProd
+          ? 'https://ql-vunglu.site/api-dancu/v1'
+          : 'http://localhost:3002/v1';
+
+        const response = await fetch(
+          `${verificationBaseUrl}/verifications?phoneNumber=${dto.phoneNumber}`,
+        );
+        if (response.ok) {
+          const result = (await response.json()) as any;
+          if (result && result.data && result.data.length > 0) {
+            const latestReg = result.data[0];
+            if (latestReg.status === 'PENDING') {
+              throw new BadRequestException(
+                'Tài khoản của bạn đang chờ Ban quản trị phê duyệt. Vui lòng quay lại sau.',
+              );
+            } else if (latestReg.status === 'REJECTED') {
+              throw new BadRequestException(
+                'Yêu cầu đăng ký tài khoản của bạn đã bị từ chối phê duyệt.',
+              );
+            }
+          }
+        }
+      } catch (err) {
+        if (err instanceof BadRequestException) {
+          throw err;
+        }
+        console.error('Lỗi khi check status verifications:', err.message || err);
+      }
       throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
     }
 
-    const isMatch = await bcrypt.compare(dto.password, user.password ?? '');
-    if (!isMatch) {
-      throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
+    if (user.status === 'INACTIVE') {
+      throw new BadRequestException(
+        'Tài khoản của bạn đã bị khóa vui lòng liên hệ quản lý phường để xử lý',
+      );
+    }
+
+    // Bỏ qua đối chiếu mật khẩu đối với vai trò Người dân (RESIDENT)
+    if (user.role?.roleCode !== RoleCode.RESIDENT) {
+      if (!dto.password) {
+        throw new BadRequestException('Mật khẩu không được để trống');
+      }
+      const isMatch = await bcrypt.compare(dto.password, user.password ?? '');
+      if (!isMatch) {
+        throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
+      }
     }
 
     // 🔥 Xử lý deviceId nếu được gửi từ frontend
@@ -528,4 +578,23 @@ export class AuthsService {
       message: 'Đổi mật khẩu thành công',
     };
   }
+
+  async findUserByPhoneNumber(phoneNumber: string) {
+    if (!phoneNumber) return null;
+    return this.userRepository.findOne({
+      where: { phoneNumber },
+      select: ['id', 'fullName', 'email', 'phoneNumber', 'roleId', 'address', 'status'],
+      relations: ['role'],
+    });
+  }
+
+  async findUserById(id: number) {
+    if (!id) return null;
+    return this.userRepository.findOne({
+      where: { id },
+      select: ['id', 'fullName', 'email', 'phoneNumber', 'roleId', 'address', 'status'],
+      relations: ['role'],
+    });
+  }
 }
+

@@ -18,6 +18,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
   ],
   controllers: [ChatsController],
   providers: [ChatsService, ChatsGateway],
-  exports: [ChatsService],
+  exports: [ChatsService, ChatsGateway],
 })
 export class ChatsModule {}

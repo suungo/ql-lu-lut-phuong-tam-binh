@@ -1,8 +1,10 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -54,6 +56,16 @@ export class CreateReflectionDto {
   @IsEnum(EventType)
   @IsNotEmpty()
   typeOfIncident: EventType;
+
+  @ApiProperty({ required: false })
+  @IsBoolean()
+  @IsOptional()
+  isPublishedOnMap?: boolean;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  originalReflectionId?: number;
 }
 
 export class UpdateReflectionDto extends PartialType(CreateReflectionDto) {

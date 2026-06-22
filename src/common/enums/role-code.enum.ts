@@ -5,5 +5,5 @@ export enum RoleCode {
   INSPECTOR = 'INSPECTOR', // Hậu kiểm (điều cán bộ tuần tra)
   PATROL = 'PATROL', // Cán bộ tuần tra (xử lý thực địa)
   STAFF = 'STAFF', // Nhân viên y tế
-  RESIDENT = 'RESIDENT', // Cư dân trong phường
+  RESIDENT = 'RESIDENT', // Người dân trong phường
 }

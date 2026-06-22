@@ -7,12 +7,16 @@ import { VerificationsController } from './verifications.controller';
 import { Reflection } from '../reflections/entities/reflection.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
+import { ResidentContactsModule } from '../resident-contacts/resident-contacts.module';
+import { AuthsModule } from '../auths/auths.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Verification, Reflection]),
     NotificationsModule,
     UsersModule,
+    ResidentContactsModule,
+    AuthsModule,
   ],
   controllers: [VerificationsController],
   providers: [VerificationsService],

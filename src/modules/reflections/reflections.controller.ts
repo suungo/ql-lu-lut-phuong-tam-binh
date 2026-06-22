@@ -61,6 +61,7 @@ export class ReflectionsController {
   @ApiQuery({ name: 'keyword', required: false })
   @ApiQuery({ name: 'status', enum: ReflectionStatus, required: false })
   @ApiQuery({ name: 'isMap', type: Boolean, required: false })
+  @ApiQuery({ name: 'assignedUserId', type: Number, required: false })
   findAll(
     @CurrentUser() user: any,
     @Query('page') page = 1,
@@ -68,8 +69,17 @@ export class ReflectionsController {
     @Query('keyword') keyword?: string,
     @Query('status') status?: ReflectionStatus,
     @Query('isMap') isMap?: boolean,
+    @Query('assignedUserId') assignedUserId?: number,
   ) {
-    return this.service.findAll(+page, +limit, user, keyword, status, isMap);
+    return this.service.findAll(+page, +limit, user, keyword, status, isMap, assignedUserId ? +assignedUserId : undefined);
+  }
+
+  @Get('assigned-stats/:userId')
+  @UseGuards(RolesGuard)
+  @Roles(RoleCode.ADMIN, RoleCode.MANAGER)
+  @ApiOperation({ summary: 'Thống kê nhiệm vụ được giao của nhân sự' })
+  getAssignedStats(@Param('userId', ParseIntPipe) userId: number) {
+    return this.service.getAssignedStats(userId);
   }
 
   @Get('my')
@@ -84,8 +94,11 @@ export class ReflectionsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Chi tiết phản ánh' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.service.findOne(id);
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.service.findOne(id, user);
   }
 
   @Patch(':id')
@@ -139,51 +152,10 @@ export class ReflectionsController {
     return this.service.verifyByOfficer(id, dto, user);
   }
 
-  /**
-   * Bước 4: MANAGER giao yêu cầu cho INSPECTOR
-   */
-  @Patch(':id/assign')
-  @UseGuards(RolesGuard)
-  @Roles(RoleCode.MANAGER, RoleCode.ADMIN)
-  @ApiOperation({ summary: '[MANAGER] Giao phản ánh cho Hậu kiểm' })
-  assignToInspector(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: { inspectorId: number; note?: string },
-    @CurrentUser() user: any,
-  ) {
-    return this.service.assignToInspector(id, dto, user);
-  }
-
-  /**
-   * Bước 5: INSPECTOR điều PATROL
-   */
-  @Patch(':id/dispatch')
-  @UseGuards(RolesGuard)
-  @Roles(RoleCode.INSPECTOR)
-  @ApiOperation({ summary: '[INSPECTOR] Điều cán bộ tuần tra xử lý' })
-  dispatchPatrol(
-    @Param('id', ParseIntPipe) id: number,
-    @Body()
-    dto: { patrolId: number; estimatedHandleMinutes?: number; note?: string },
-    @CurrentUser() user: any,
-  ) {
-    return this.service.dispatchPatrol(id, dto, user);
-  }
 
   // ══════════════════════════════════════════════════════════════════════
   // NHẬN VIỆC
   // ══════════════════════════════════════════════════════════════════════
-
-  @Patch(':id/accept-inspector')
-  @UseGuards(RolesGuard)
-  @Roles(RoleCode.INSPECTOR)
-  @ApiOperation({ summary: '[INSPECTOR] Nhận việc được phân công' })
-  acceptByInspector(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
-  ) {
-    return this.service.acceptByInspector(id, user);
-  }
 
   @Patch(':id/accept-patrol')
   @UseGuards(RolesGuard)
@@ -224,7 +196,6 @@ export class ReflectionsController {
     dto: {
       resolved: boolean;
       patrolReport: string;
-      needReinforcement?: boolean;
       incompleteReason?: string;
     },
     @CurrentUser() user: any,
@@ -232,19 +203,35 @@ export class ReflectionsController {
     return this.service.submitPatrolReport(id, dto, user);
   }
 
+
   /**
-   * Bước 9: INSPECTOR xác nhận hoàn thành, gửi báo cáo lên MANAGER
+   * Bước cuối: MANAGER/ADMIN xác nhận hoàn thành sự cố
+   * Sau khi PATROL báo cáo xong (COMPLETED), MANAGER xác nhận → RESOLVED
    */
-  @Patch(':id/inspector-confirm')
+  @Patch(':id/manager-confirm')
   @UseGuards(RolesGuard)
-  @Roles(RoleCode.INSPECTOR, RoleCode.MANAGER)
-  @ApiOperation({ summary: '[INSPECTOR] Xác nhận hoàn thành và gửi báo cáo' })
-  inspectorConfirm(
+  @Roles(RoleCode.MANAGER, RoleCode.ADMIN)
+  @ApiOperation({
+    summary: '[MANAGER] Xác nhận hoàn thành sự cố (COMPLETED → RESOLVED)',
+  })
+  managerConfirm(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: { note?: string },
+    @Body() dto: { note?: string; rating?: number },
     @CurrentUser() user: any,
   ) {
-    return this.service.inspectorConfirm(id, dto, user);
+    return this.service.managerConfirm(id, dto, user);
+  }
+
+  @Patch(':id/rate')
+  @UseGuards(RolesGuard)
+  @Roles(RoleCode.RESIDENT)
+  @ApiOperation({ summary: '[RESIDENT] Đánh giá chất lượng xử lý sự cố' })
+  rateReflection(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: { rating: number; comment?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.service.rateReflection(id, dto.rating, user.id, dto.comment);
   }
 
   // ==================== LIKES ====================

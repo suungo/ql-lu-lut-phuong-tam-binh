@@ -41,6 +41,11 @@ export class CreateHumanResourceDto {
   @IsOptional()
   address?: string;
 
+  @ApiProperty({ required: false })
+  @IsString()
+  @IsOptional()
+  avatar?: string;
+
   @ApiProperty({ enum: HumanResourcePosition })
   @IsEnum(HumanResourcePosition)
   @IsOptional()

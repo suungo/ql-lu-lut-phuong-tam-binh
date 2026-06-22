@@ -49,12 +49,15 @@ export class DispatchReport extends BaseEntity {
   assigner: User;
 
   /** Người được chỉ định (INSPECTOR hoặc PATROL) */
-  @Column({ name: 'assigned_to' })
-  assignedTo: number;
+  @Column({ name: 'assigned_to', nullable: true })
+  assignedTo?: number;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assigned_to' })
   assignee: User;
+
+  @Column({ type: 'varchar', nullable: true, name: 'custom_handler' })
+  customHandler?: string;
 
   // ── THỜI GIAN ───────────────────────────────────────────────────────
 
@@ -63,8 +66,8 @@ export class DispatchReport extends BaseEntity {
   assignedAt: Date;
 
   /** Hạn xác nhận (assignedAt + 5 phút) */
-  @Column({ type: 'timestamp', name: 'expired_at' })
-  expiredAt: Date;
+  @Column({ type: 'timestamp', name: 'expired_at', nullable: true })
+  expiredAt?: Date;
 
   /** Thời điểm người nhận xác nhận */
   @Column({ type: 'timestamp', nullable: true, name: 'accepted_at' })
@@ -73,6 +76,10 @@ export class DispatchReport extends BaseEntity {
   /** Thời điểm hoàn thành */
   @Column({ type: 'timestamp', nullable: true, name: 'completed_at' })
   completedAt?: Date;
+
+  /** Thời gian dự kiến hoàn thành */
+  @Column({ type: 'timestamp', nullable: true, name: 'expected_time' })
+  expectedTime?: Date;
 
   // ── NỘI DUNG BÁO CÁO ──────────────────────────────────────────────
 

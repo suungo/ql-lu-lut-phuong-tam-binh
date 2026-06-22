@@ -5,8 +5,9 @@ export class CreateDispatchReportDto {
   @IsNumber()
   reflectionId: number;
 
+  @IsOptional()
   @IsNumber()
-  assignedTo: number;
+  assignedTo?: number;
 
   @IsOptional()
   @IsString()
@@ -19,6 +20,13 @@ export class CreateDispatchReportDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  customHandler?: string;
+
+  @IsOptional()
+  expectedTime?: Date;
 }
 
 export class UpdateDispatchReportDto {
@@ -48,4 +56,7 @@ export class UpdateDispatchReportDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  expectedTime?: Date;
 }

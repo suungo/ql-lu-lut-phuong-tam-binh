@@ -96,6 +96,12 @@ export class CreateResidentDto {
   @ApiProperty({ required: false, default: true })
   @IsOptional()
   createAccount?: boolean; // Tự động tạo tài khoản người dùng cho hộ dân
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  userId?: number; // ID người dùng liên kết
 }
 
 export class UpdateResidentDto extends PartialType(CreateResidentDto) {}
+

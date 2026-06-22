@@ -57,14 +57,16 @@ export class HumanResourcesController {
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'keyword', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'roleCode', required: false })
   findAll(
     @CurrentUser() user: any,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('keyword') keyword?: string,
     @Query('status') status?: HumanResourceStatus,
+    @Query('roleCode') roleCode?: string,
   ) {
-    return this.service.findAll(+page, +limit, user, keyword, status);
+    return this.service.findAll(+page, +limit, user, keyword, status, roleCode);
   }
 
   @Get(':id')

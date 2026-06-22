@@ -2,9 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RoleCode } from 'src/common/enums/role-code.enum';
 import { Repository } from 'typeorm';
+import { AuthsService } from '../auths/auths.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Reflection } from '../reflections/entities/reflection.entity';
 import { ReflectionStatus } from '../reflections/enums/reflection.enum';
+import { ResidentContactsService } from '../resident-contacts/resident-contacts.service';
 import { UsersService } from '../users/users.service';
 import {
   CreateVerificationDto,
@@ -25,17 +27,30 @@ export class VerificationsService {
     private readonly reflectionRepo: Repository<Reflection>,
     private readonly notificationsService: NotificationsService,
     private readonly usersService: UsersService,
+    private readonly residentContactsService: ResidentContactsService,
+    private readonly authsService: AuthsService,
   ) {}
 
   async create(dto: CreateVerificationDto, user_id: number) {
     const code = `VR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    // Đối chiếu CCCD nếu là đăng ký người dân
+    let isMatchedContact: boolean | null = null;
+    if (
+      dto.verificationType === VerificationType.RESIDENT_REGISTRATION &&
+      dto.cccd
+    ) {
+      const contact = await this.residentContactsService.findByCccd(dto.cccd);
+      isMatchedContact = !!contact;
+    }
+
     const saved = await this.repo.save(
-      this.repo.create({ ...dto, user_id, code }),
+      this.repo.create({ ...dto, user_id, code, isMatchedContact }),
     );
     return {
       statusCode: 201,
       message: 'Gửi yêu cầu xác minh thành công',
-      data: saved,
+      data: { ...saved, isMatchedContact },
     };
   }
 
@@ -102,7 +117,7 @@ export class VerificationsService {
         });
         if (reflection) {
           if (dto.status === VerificationStatus.APPROVED) {
-            reflection.status = ReflectionStatus.IN_PROGRESS; // Được duyệt thì bắt đầu xử lý
+            reflection.status = ReflectionStatus.VERIFIED; // Được duyệt thì chuyển sang trạng thái đã xác minh
             reflection.managedBy = reviewerId; // Gắn định danh người quản lý duyệt báo cáo này
 
             // 1. Thông báo cho người gửi phản ánh (Owner)
@@ -155,6 +170,34 @@ export class VerificationsService {
           await this.reflectionRepo.save(reflection);
         }
       }
+
+      // ============ XỬ LÝ ĐĂNG KÝ NGƯỜI DÂN ============
+      if (v.verificationType === VerificationType.RESIDENT_REGISTRATION) {
+        const userRes = await this.usersService.findOne(v.user_id).catch(() => null);
+        const userData = userRes?.data;
+
+        if (dto.status === VerificationStatus.APPROVED) {
+          if (userData) {
+            this.notificationsService.create({
+              userId: v.user_id,
+              title: 'Tài khoản đã được phê duyệt',
+              content: `Chào ${userData.fullName || 'bạn'}, tài khoản đăng ký của bạn đã được Ban quản trị phê duyệt. Bạn có thể đăng nhập hệ thống ngay bây giờ.`,
+              type: 'VERIFICATION_UPDATE',
+              referenceId: v.id,
+            }).catch(console.error);
+          }
+        } else if (dto.status === VerificationStatus.REJECTED) {
+          if (userData) {
+            this.notificationsService.create({
+              userId: v.user_id,
+              title: 'Yêu cầu đăng ký bị từ chối',
+              content: `Chào ${userData.fullName || 'bạn'}, yêu cầu đăng ký tài khoản của bạn đã bị từ chối${dto.reviewNote ? `: ${dto.reviewNote}` : '.'}`,
+              type: 'VERIFICATION_UPDATE',
+              referenceId: v.id,
+            }).catch(console.error);
+          }
+        }
+      }
     }
     Object.assign(v, dto);
     return {
@@ -163,6 +206,7 @@ export class VerificationsService {
       data: await this.repo.save(v),
     };
   }
+
 
   async remove(id: number) {
     const v = await this.repo.findOne({ where: { id } });

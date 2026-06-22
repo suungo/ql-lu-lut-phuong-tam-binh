@@ -55,4 +55,10 @@ export class Verification extends BaseEntity {
 
   @Column({ nullable: true, name: 'reference_id' })
   referenceId?: number;
+
+  @Column({ nullable: true })
+  cccd?: string; // Số CCCD người dân khai khi đăng ký
+
+  @Column({ nullable: true, default: null, name: 'is_matched_contact' })
+  isMatchedContact?: boolean; // Có khớp danh sách liên hệ không
 }
