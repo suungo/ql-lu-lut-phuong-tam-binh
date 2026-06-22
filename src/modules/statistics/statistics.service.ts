@@ -14,7 +14,10 @@ export class StatisticsService {
     private readonly usersService: UsersService,
   ) {}
 
-  async recordVisit(ipAddress?: string, userAgent?: string): Promise<SiteVisit> {
+  async recordVisit(
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<SiteVisit> {
     const visit = this.siteVisitRepository.create({ ipAddress, userAgent });
     return this.siteVisitRepository.save(visit);
   }
@@ -22,11 +25,15 @@ export class StatisticsService {
   async getDashboardStats() {
     const activeOnlineCount = this.notificationsGateway.getActiveUsersCount();
     const totalUsers = await this.usersService.countAllUsers();
-    
+
     // Fallback Date approach to avoid DB-specific syntax issues like EXTRACT
     // This fetches data and does processing in memory, safe for all DBs
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
@@ -40,8 +47,12 @@ export class StatisticsService {
       time: `${i.toString().padStart(2, '0')}:00`,
       count: 0,
     }));
-    
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+    const daysInMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+    ).getDate();
     const monthVisits = Array.from({ length: daysInMonth }, (_, i) => {
       const date = new Date(now.getFullYear(), now.getMonth(), i + 1);
       const day = date.getDate().toString().padStart(2, '0');
@@ -62,7 +73,7 @@ export class StatisticsService {
     // Process
     for (const v of yearVisitsData) {
       const vDate = new Date(v.visitedAt);
-      
+
       // Update year
       yearVisits[vDate.getMonth()].count++;
 
@@ -86,8 +97,16 @@ export class StatisticsService {
           year: yearVisits,
         },
         activeAccounts: [
-          { name: 'Đang hoạt động', value: activeOnlineCount, color: '#10b981' },
-          { name: 'Ngoại tuyến', value: Math.max(0, totalUsers - activeOnlineCount), color: '#cbd5e1' },
+          {
+            name: 'Đang hoạt động',
+            value: activeOnlineCount,
+            color: '#10b981',
+          },
+          {
+            name: 'Ngoại tuyến',
+            value: Math.max(0, totalUsers - activeOnlineCount),
+            color: '#cbd5e1',
+          },
         ],
       },
       message: 'Lấy dữ liệu thống kê thành công',

@@ -25,7 +25,9 @@ export class ResidentContactsService {
 
     const list = Array.isArray(dto)
       ? dto
-      : (dto && Array.isArray(dto.contacts) ? dto.contacts : []);
+      : dto && Array.isArray(dto.contacts)
+        ? dto.contacts
+        : [];
 
     for (const contact of list) {
       if (!contact.cccd) {
@@ -60,7 +62,9 @@ export class ResidentContactsService {
   async create(dto: CreateResidentContactDto) {
     const existing = await this.repo.findOne({ where: { cccd: dto.cccd } });
     if (existing) {
-      throw new BadRequestException('Số CCCD đã tồn tại trong danh sách liên hệ');
+      throw new BadRequestException(
+        'Số CCCD đã tồn tại trong danh sách liên hệ',
+      );
     }
     const saved = await this.repo.save(this.repo.create(dto));
     return { statusCode: 201, message: 'Thêm thành công', data: saved };

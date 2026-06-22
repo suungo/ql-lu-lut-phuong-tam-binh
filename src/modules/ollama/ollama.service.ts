@@ -57,7 +57,7 @@ Reply ONLY this JSON:
     if (this.geminiApiKey) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
-        
+
         let geminiUserContent = `Dữ liệu phản ánh cần kiểm duyệt:
 - Tiêu đề: "${title}"
 - Nội dung: "${content}"
@@ -138,13 +138,16 @@ Yêu cầu về trường "reason":
 
         if (!response.ok) {
           const errorText = await response.text();
-          this.logger.warn(`Gemini API lỗi HTTP ${response.status}: ${errorText}`);
+          this.logger.warn(
+            `Gemini API lỗi HTTP ${response.status}: ${errorText}`,
+          );
           return this.fallbackResult();
         }
 
         const data = (await response.json()) as any;
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        const aiResponse = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const aiResponse =
+          data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
         this.logger.log(
           `Gemini phân tích xong trong ${elapsed}s. Raw: ${JSON.stringify(aiResponse)}`,

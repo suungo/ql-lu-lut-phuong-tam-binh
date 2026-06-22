@@ -71,7 +71,15 @@ export class ReflectionsController {
     @Query('isMap') isMap?: boolean,
     @Query('assignedUserId') assignedUserId?: number,
   ) {
-    return this.service.findAll(+page, +limit, user, keyword, status, isMap, assignedUserId ? +assignedUserId : undefined);
+    return this.service.findAll(
+      +page,
+      +limit,
+      user,
+      keyword,
+      status,
+      isMap,
+      assignedUserId ? +assignedUserId : undefined,
+    );
   }
 
   @Get('assigned-stats/:userId')
@@ -94,10 +102,7 @@ export class ReflectionsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Chi tiết phản ánh' })
-  findOne(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: any,
-  ) {
+  findOne(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.service.findOne(id, user);
   }
 
@@ -152,7 +157,6 @@ export class ReflectionsController {
     return this.service.verifyByOfficer(id, dto, user);
   }
 
-
   // ══════════════════════════════════════════════════════════════════════
   // NHẬN VIỆC
   // ══════════════════════════════════════════════════════════════════════
@@ -202,7 +206,6 @@ export class ReflectionsController {
   ) {
     return this.service.submitPatrolReport(id, dto, user);
   }
-
 
   /**
    * Bước cuối: MANAGER/ADMIN xác nhận hoàn thành sự cố

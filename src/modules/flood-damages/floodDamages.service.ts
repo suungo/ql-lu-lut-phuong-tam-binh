@@ -27,13 +27,17 @@ export class FloodDamagesService {
     let householdId = dto.householdId;
     if (!householdId) {
       try {
-        const residentRepo = this.floodDamageRepository.manager.getRepository(Resident);
+        const residentRepo =
+          this.floodDamageRepository.manager.getRepository(Resident);
         const resident = await residentRepo.findOne({ where: { userId } });
         if (resident) {
           householdId = resident.id;
         }
       } catch (err) {
-        console.error('Lỗi khi truy vấn thông tin hộ dân để liên kết thiệt hại:', err);
+        console.error(
+          'Lỗi khi truy vấn thông tin hộ dân để liên kết thiệt hại:',
+          err,
+        );
       }
     }
 

@@ -56,18 +56,23 @@ export class ReflectionsService {
       if (lastReflections.length === 5) {
         const oldestOfFive = lastReflections[4];
         const newestOfFive = lastReflections[0];
-        
+
         // Kiểm tra xem 5 phản ánh gần nhất có được tạo trong vòng 5 phút hay không
-        const diffMs = newestOfFive.createdAt.getTime() - oldestOfFive.createdAt.getTime();
+        const diffMs =
+          newestOfFive.createdAt.getTime() - oldestOfFive.createdAt.getTime();
         const fiveMinutesInMs = 5 * 60 * 1000;
-        
+
         if (diffMs <= fiveMinutesInMs) {
           // Tính thời gian hết hạn chặn (15 phút kể từ phản ánh thứ 5)
-          const blockedUntil = new Date(newestOfFive.createdAt.getTime() + 15 * 60 * 1000);
+          const blockedUntil = new Date(
+            newestOfFive.createdAt.getTime() + 15 * 60 * 1000,
+          );
           const now = new Date();
-          
+
           if (now < blockedUntil) {
-            const remainingMinutes = Math.ceil((blockedUntil.getTime() - now.getTime()) / (60 * 1000));
+            const remainingMinutes = Math.ceil(
+              (blockedUntil.getTime() - now.getTime()) / (60 * 1000),
+            );
             throw new ForbiddenException(
               `Bạn đã gửi quá nhiều phản ánh trong thời gian ngắn (5 tin trong 5 phút). Vui lòng thử lại sau ${remainingMinutes} phút.`,
             );
@@ -86,8 +91,13 @@ export class ReflectionsService {
 
     let reflection: Reflection;
 
-    if (dto.originalReflectionId && (roleCode === RoleCode.MANAGER || roleCode === RoleCode.ADMIN)) {
-      const originalReflection = await this.repo.findOne({ where: { id: dto.originalReflectionId } });
+    if (
+      dto.originalReflectionId &&
+      (roleCode === RoleCode.MANAGER || roleCode === RoleCode.ADMIN)
+    ) {
+      const originalReflection = await this.repo.findOne({
+        where: { id: dto.originalReflectionId },
+      });
       if (!originalReflection) {
         throw new NotFoundException('Không tìm thấy phản ánh gốc');
       }
@@ -96,7 +106,8 @@ export class ReflectionsService {
       originalReflection.managedBy = userId;
       originalReflection.status = ReflectionStatus.RESOLVED;
       if (!originalReflection.response) {
-        originalReflection.response = 'Phản ánh đã được xử lý và công khai lên bản đồ bởi Quản lý phường.';
+        originalReflection.response =
+          'Phản ánh đã được xử lý và công khai lên bản đồ bởi Quản lý phường.';
         originalReflection.respondedAt = new Date();
       }
       reflection = originalReflection;
@@ -127,13 +138,13 @@ export class ReflectionsService {
     // Xác minh bằng AI chạy ngầm đối với phản ánh từ NGƯỜI DÂN
     if (roleCode === RoleCode.RESIDENT) {
       // Chạy ngầm không dùng await
-      this.processResidentReflectionAsync(saved.id, dto, currentUser).catch((err) =>
-        console.error('Lỗi khi chạy AI ngầm:', err),
+      this.processResidentReflectionAsync(saved.id, dto, currentUser).catch(
+        (err) => console.error('Lỗi khi chạy AI ngầm:', err),
       );
     } else {
       // Gửi thông báo theo role người tạo (trừ RESIDENT vì RESIDENT sẽ gửi trong processResidentReflectionAsync)
-      this.sendCreationNotifications(saved, roleCode, currentUser).catch((err) =>
-        console.error('Lỗi gửi thông báo:', err),
+      this.sendCreationNotifications(saved, roleCode, currentUser).catch(
+        (err) => console.error('Lỗi gửi thông báo:', err),
       );
     }
 
@@ -153,14 +164,21 @@ export class ReflectionsService {
     currentUser: any,
   ) {
     try {
-      const reflection = await this.repo.findOne({ where: { id: reflectionId } });
+      const reflection = await this.repo.findOne({
+        where: { id: reflectionId },
+      });
       if (!reflection) return;
 
       let nearbyReportsContext = '';
       if (dto.lat && dto.lng) {
-        const nearbyReports = await this.findNearbyActiveReflections(dto.lat, dto.lng);
+        const nearbyReports = await this.findNearbyActiveReflections(
+          dto.lat,
+          dto.lng,
+        );
         // Loại trừ chính phản ánh hiện tại ra khỏi danh sách
-        const otherNearbyReports = nearbyReports.filter((r) => r.id !== reflectionId);
+        const otherNearbyReports = nearbyReports.filter(
+          (r) => r.id !== reflectionId,
+        );
         if (otherNearbyReports.length > 0) {
           nearbyReportsContext = otherNearbyReports
             .map(
@@ -199,13 +217,23 @@ export class ReflectionsService {
       }
 
       // Gửi thông báo (thành công hoặc từ chối)
-      await this.sendCreationNotifications(reflection, RoleCode.RESIDENT, currentUser);
+      await this.sendCreationNotifications(
+        reflection,
+        RoleCode.RESIDENT,
+        currentUser,
+      );
     } catch (err) {
       console.error('Lỗi khi xử lý AI ngầm:', err);
       // Nếu lỗi AI, vẫn giữ nguyên PENDING và báo thành công
-      const reflection = await this.repo.findOne({ where: { id: reflectionId } });
+      const reflection = await this.repo.findOne({
+        where: { id: reflectionId },
+      });
       if (reflection) {
-        await this.sendCreationNotifications(reflection, RoleCode.RESIDENT, currentUser);
+        await this.sendCreationNotifications(
+          reflection,
+          RoleCode.RESIDENT,
+          currentUser,
+        );
       }
     }
   }
@@ -433,7 +461,6 @@ export class ReflectionsService {
     return { statusCode: 200, message: 'Đã xác minh phản ánh', data: r };
   }
 
-
   // ══════════════════════════════════════════════════════════════════════
   // NHẬN VIỆC (INSPECTOR & PATROL)
   // ══════════════════════════════════════════════════════════════════════
@@ -557,10 +584,22 @@ export class ReflectionsService {
     // Cập nhật DispatchReport liên quan
     const dispatchReport = await this.dispatchReportRepo.findOne({
       where: [
-        { reflectionId: id, assignedTo: patrol.id, status: DispatchReportStatus.IN_PROGRESS },
-        { reflectionId: id, assignedTo: patrol.id, status: DispatchReportStatus.ACCEPTED },
-        { reflectionId: id, assignedTo: patrol.id, status: DispatchReportStatus.PENDING }
-      ]
+        {
+          reflectionId: id,
+          assignedTo: patrol.id,
+          status: DispatchReportStatus.IN_PROGRESS,
+        },
+        {
+          reflectionId: id,
+          assignedTo: patrol.id,
+          status: DispatchReportStatus.ACCEPTED,
+        },
+        {
+          reflectionId: id,
+          assignedTo: patrol.id,
+          status: DispatchReportStatus.PENDING,
+        },
+      ],
     });
 
     if (dispatchReport) {
@@ -571,7 +610,9 @@ export class ReflectionsService {
         ? DispatchReportStatus.COMPLETED
         : DispatchReportStatus.IN_PROGRESS;
       dispatchReport.reportContent = r.patrolReport;
-      dispatchReport.reflectionStatusUpdate = dto.resolved ? 'COMPLETED' : 'IN_PROGRESS';
+      dispatchReport.reflectionStatusUpdate = dto.resolved
+        ? 'COMPLETED'
+        : 'IN_PROGRESS';
       if (dto.resolved) {
         dispatchReport.completedAt = new Date();
       }
@@ -619,7 +660,11 @@ export class ReflectionsService {
   // BUOC CUOI: MANAGER XAC NHAN HOAN THANH (COMPLETED -> RESOLVED)
   // ══════════════════════════════════════════════════════════════════════
 
-  async managerConfirm(id: number, dto: { note?: string; rating?: number }, manager: any) {
+  async managerConfirm(
+    id: number,
+    dto: { note?: string; rating?: number },
+    manager: any,
+  ) {
     const r = await this.repo.findOne({ where: { id } });
     if (!r) throw new NotFoundException('Không tìm thấy phản ánh');
     if (r.status !== ReflectionStatus.COMPLETED) {
@@ -674,7 +719,6 @@ export class ReflectionsService {
       data: r,
     };
   }
-
 
   // ══════════════════════════════════════════════════════════════════════
   // HELPER METHODS
@@ -740,12 +784,15 @@ export class ReflectionsService {
       .createQueryBuilder('r')
       .leftJoinAndSelect('r.user', 'user')
       .leftJoinAndSelect('user.role', 'role')
-      .addSelect(`CASE r.priority 
+      .addSelect(
+        `CASE r.priority 
         WHEN 'HIGH' THEN 1 
         WHEN 'MEDIUM' THEN 2 
         WHEN 'LOW' THEN 3 
         ELSE 4 
-      END`, 'priority_order');
+      END`,
+        'priority_order',
+      );
 
     if (isMap) {
       qb.andWhere('r.isPublishedOnMap = :published', { published: true });
@@ -841,7 +888,10 @@ export class ReflectionsService {
     const r = await this.repo.findOne({ where: { id }, relations: ['user'] });
     if (!r) throw new NotFoundException('Không tìm thấy phản ánh');
 
-    if (currentUser?.roleCode === RoleCode.RESIDENT && r.userId !== currentUser.id) {
+    if (
+      currentUser?.roleCode === RoleCode.RESIDENT &&
+      r.userId !== currentUser.id
+    ) {
       if (r.user && r.user.fullName) {
         r.user.fullName = this.maskName(r.user.fullName);
       }
@@ -1000,16 +1050,25 @@ export class ReflectionsService {
     };
   }
 
-  async rateReflection(id: number, rating: number, userId: number, comment?: string) {
+  async rateReflection(
+    id: number,
+    rating: number,
+    userId: number,
+    comment?: string,
+  ) {
     const r = await this.repo.findOne({ where: { id } });
     if (!r) throw new NotFoundException('Không tìm thấy phản ánh');
-    
+
     if (r.userId !== userId) {
-      throw new ForbiddenException('Bạn không phải người tạo phản ánh này để thực hiện đánh giá');
+      throw new ForbiddenException(
+        'Bạn không phải người tạo phản ánh này để thực hiện đánh giá',
+      );
     }
 
     if (r.status !== ReflectionStatus.RESOLVED) {
-      throw new BadRequestException('Chỉ có thể đánh giá phản ánh đã hoàn thành');
+      throw new BadRequestException(
+        'Chỉ có thể đánh giá phản ánh đã hoàn thành',
+      );
     }
 
     if (rating < 1 || rating > 5) {
@@ -1018,7 +1077,7 @@ export class ReflectionsService {
 
     r.rating = rating;
     if (comment) {
-      r.response = r.response 
+      r.response = r.response
         ? `${r.response}\n[Đánh giá của cư dân - ${rating} sao]: ${comment}`
         : `[Đánh giá của cư dân - ${rating} sao]: ${comment}`;
     }

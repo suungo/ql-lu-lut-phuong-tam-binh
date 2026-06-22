@@ -59,7 +59,9 @@ export class UsersController {
   @Get('work-quality')
   @UseGuards(RolesGuard)
   @Roles(RoleCode.ADMIN, RoleCode.MANAGER)
-  @ApiOperation({ summary: 'Chất lượng công việc của nhân sự (trừ quản lý/người dân)' })
+  @ApiOperation({
+    summary: 'Chất lượng công việc của nhân sự (trừ quản lý/người dân)',
+  })
   getWorkQuality(
     @Query('page') page = 1,
     @Query('limit') limit = 10,

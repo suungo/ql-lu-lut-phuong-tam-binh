@@ -45,7 +45,9 @@ export class AuthsService {
     });
     if (existing) {
       if (existing.deletedAt) {
-        throw new BadRequestException('Số điện thoại đã tồn tại trong hệ thống (đã bị xóa tạm thời)');
+        throw new BadRequestException(
+          'Số điện thoại đã tồn tại trong hệ thống (đã bị xóa tạm thời)',
+        );
       }
       throw new BadRequestException('Số điện thoại đã được sử dụng');
     }
@@ -88,7 +90,9 @@ export class AuthsService {
     });
     if (existing) {
       if (existing.deletedAt) {
-        throw new BadRequestException('Số điện thoại hoặc Email đã tồn tại trong hệ thống (đã bị xóa tạm thời)');
+        throw new BadRequestException(
+          'Số điện thoại hoặc Email đã tồn tại trong hệ thống (đã bị xóa tạm thời)',
+        );
       }
       throw new BadRequestException(
         'Số điện thoại hoặc Email đã được sử dụng cho một tài khoản khác',
@@ -190,7 +194,10 @@ export class AuthsService {
         if (err instanceof BadRequestException) {
           throw err;
         }
-        console.error('Lỗi khi check status verifications:', err.message || err);
+        console.error(
+          'Lỗi khi check status verifications:',
+          err.message || err,
+        );
       }
       throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
     }
@@ -208,7 +215,9 @@ export class AuthsService {
       }
       const isMatch = await bcrypt.compare(dto.password, user.password ?? '');
       if (!isMatch) {
-        throw new UnauthorizedException('Số điện thoại hoặc mật khẩu không đúng');
+        throw new UnauthorizedException(
+          'Số điện thoại hoặc mật khẩu không đúng',
+        );
       }
     }
 
@@ -583,7 +592,15 @@ export class AuthsService {
     if (!phoneNumber) return null;
     return this.userRepository.findOne({
       where: { phoneNumber },
-      select: ['id', 'fullName', 'email', 'phoneNumber', 'roleId', 'address', 'status'],
+      select: [
+        'id',
+        'fullName',
+        'email',
+        'phoneNumber',
+        'roleId',
+        'address',
+        'status',
+      ],
       relations: ['role'],
     });
   }
@@ -592,9 +609,16 @@ export class AuthsService {
     if (!id) return null;
     return this.userRepository.findOne({
       where: { id },
-      select: ['id', 'fullName', 'email', 'phoneNumber', 'roleId', 'address', 'status'],
+      select: [
+        'id',
+        'fullName',
+        'email',
+        'phoneNumber',
+        'roleId',
+        'address',
+        'status',
+      ],
       relations: ['role'],
     });
   }
 }
-

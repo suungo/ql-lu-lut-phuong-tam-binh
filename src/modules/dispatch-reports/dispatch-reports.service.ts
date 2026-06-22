@@ -171,10 +171,12 @@ export class DispatchReportsService {
     const report = this.repo.create({
       code,
       type: DispatchReportType.INSPECTOR_TO_PATROL,
-      status: isCustom ? DispatchReportStatus.COMPLETED : DispatchReportStatus.PENDING,
+      status: isCustom
+        ? DispatchReportStatus.COMPLETED
+        : DispatchReportStatus.PENDING,
       reflectionId: dto.reflectionId,
       assignedBy: inspectorId,
-      assignedTo: isCustom ? null : (dto.assignedTo || null),
+      assignedTo: isCustom ? null : dto.assignedTo || null,
       customHandler: isCustom ? dto.customHandler : null,
       assignedAt: now,
       completedAt: isCustom ? now : null,
@@ -189,8 +191,10 @@ export class DispatchReportsService {
     const saved = await this.repo.save(report);
 
     // Cập nhật reflection
-    reflection.status = isCustom ? ReflectionStatus.RESOLVED : ReflectionStatus.IN_PROGRESS;
-    reflection.patrolId = isCustom ? null : (dto.assignedTo || null);
+    reflection.status = isCustom
+      ? ReflectionStatus.RESOLVED
+      : ReflectionStatus.IN_PROGRESS;
+    reflection.patrolId = isCustom ? null : dto.assignedTo || null;
     reflection.dispatchedAt = now;
     reflection.patrolAcceptedAt = isCustom ? now : null;
     await this.reflectionRepo.save(reflection);
@@ -208,7 +212,9 @@ export class DispatchReportsService {
 
     return {
       statusCode: 201,
-      message: isCustom ? 'Ghi nhận xử lý hoàn thành thành công' : 'Tạo yêu cầu Tuần tra thành công',
+      message: isCustom
+        ? 'Ghi nhận xử lý hoàn thành thành công'
+        : 'Tạo yêu cầu Tuần tra thành công',
       data: saved,
     };
   }
@@ -344,12 +350,15 @@ export class DispatchReportsService {
       .leftJoinAndSelect('dr.assigner', 'assigner')
       .leftJoinAndSelect('dr.assignee', 'assignee')
       .leftJoinAndSelect('reflection.user', 'reflectionUser')
-      .addSelect(`CASE reflection.priority 
+      .addSelect(
+        `CASE reflection.priority 
         WHEN 'HIGH' THEN 1 
         WHEN 'MEDIUM' THEN 2 
         WHEN 'LOW' THEN 3 
         ELSE 4 
-      END`, 'priority_order');
+      END`,
+        'priority_order',
+      );
 
     if (filters?.status) {
       qb.andWhere('dr.status = :status', { status: filters.status });
@@ -385,7 +394,9 @@ export class DispatchReportsService {
       .update(DispatchReport)
       .set({ status: DispatchReportStatus.EXPIRED })
       .where('status = :status', { status: DispatchReportStatus.PENDING })
-      .andWhere('expired_at IS NOT NULL AND expired_at < :now', { now: new Date() })
+      .andWhere('expired_at IS NOT NULL AND expired_at < :now', {
+        now: new Date(),
+      })
       .execute();
 
     qb.orderBy('priority_order', 'ASC')

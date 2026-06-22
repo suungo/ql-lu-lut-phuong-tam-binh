@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, OnModuleInit, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository, In } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -27,7 +32,9 @@ export class UsersService implements OnModuleInit {
     });
     if (existing) {
       if (existing.deletedAt) {
-        throw new BadRequestException('Số điện thoại hoặc Email đã tồn tại trong hệ thống (đã bị xóa tạm thời)');
+        throw new BadRequestException(
+          'Số điện thoại hoặc Email đã tồn tại trong hệ thống (đã bị xóa tạm thời)',
+        );
       }
       throw new BadRequestException('Số điện thoại hoặc Email đã được sử dụng');
     }
@@ -39,7 +46,9 @@ export class UsersService implements OnModuleInit {
       throw new NotFoundException('Vai trò không tồn tại');
     }
 
-    const hashedPassword = dto.password ? await bcrypt.hash(dto.password, 10) : null;
+    const hashedPassword = dto.password
+      ? await bcrypt.hash(dto.password, 10)
+      : null;
 
     const user = this.repo.create({
       fullName: dto.fullName,
@@ -61,17 +70,26 @@ export class UsersService implements OnModuleInit {
   async onModuleInit() {
     // Tự động kiểm tra và reset điểm uy tín về 10 khi qua năm mới khi khởi động ứng dụng
     await this.checkAndResetReputationForNewYear().catch((err) => {
-      console.error('Lỗi khi kiểm tra reset điểm uy tín đầu năm lúc khởi động:', err?.message);
+      console.error(
+        'Lỗi khi kiểm tra reset điểm uy tín đầu năm lúc khởi động:',
+        err?.message,
+      );
     });
 
     // Cài đặt kiểm tra định kỳ mỗi giờ
-    setInterval(async () => {
-      try {
-        await this.checkAndResetReputationForNewYear();
-      } catch (err) {
-        console.error('Lỗi khi kiểm tra định kỳ reset điểm uy tín đầu năm:', err?.message);
-      }
-    }, 60 * 60 * 1000);
+    setInterval(
+      async () => {
+        try {
+          await this.checkAndResetReputationForNewYear();
+        } catch (err) {
+          console.error(
+            'Lỗi khi kiểm tra định kỳ reset điểm uy tín đầu năm:',
+            err?.message,
+          );
+        }
+      },
+      60 * 60 * 1000,
+    );
   }
 
   async checkAndResetReputationForNewYear() {
@@ -89,7 +107,9 @@ export class UsersService implements OnModuleInit {
       return;
     }
 
-    console.log(`[NewYearReset] Bắt đầu tự động reset điểm uy tín về 10 cho toàn bộ người dùng trong năm mới ${currentYear}...`);
+    console.log(
+      `[NewYearReset] Bắt đầu tự động reset điểm uy tín về 10 cho toàn bộ người dùng trong năm mới ${currentYear}...`,
+    );
 
     const users = await this.repo.find();
     if (users.length === 0) return;
@@ -123,7 +143,9 @@ export class UsersService implements OnModuleInit {
       await historyRepo.save(historiesToSave);
     }
 
-    console.log(`[NewYearReset] Hoàn thành tự động reset điểm uy tín cho năm mới ${currentYear}.`);
+    console.log(
+      `[NewYearReset] Hoàn thành tự động reset điểm uy tín cho năm mới ${currentYear}.`,
+    );
   }
 
   async findAll(page = 1, limit = 10, keyword?: string, roleCode?: RoleCode) {
@@ -167,7 +189,9 @@ export class UsersService implements OnModuleInit {
       const residents = await residentRepo.find({
         where: [
           { userId: In(userIds) },
-          ...(phoneNumbers.length > 0 ? [{ phoneNumber: In(phoneNumbers) }] : []),
+          ...(phoneNumbers.length > 0
+            ? [{ phoneNumber: In(phoneNumbers) }]
+            : []),
           ...(emails.length > 0 ? [{ email: In(emails) }] : []),
         ],
       });
@@ -203,7 +227,10 @@ export class UsersService implements OnModuleInit {
             const savedResident = await residentRepo.save(newResident);
             (user as any).resident = savedResident;
           } catch (err) {
-            console.error('Lỗi khi tự động tạo Resident trong findAll:', err?.message);
+            console.error(
+              'Lỗi khi tự động tạo Resident trong findAll:',
+              err?.message,
+            );
             (user as any).resident = null;
           }
         } else {
@@ -228,7 +255,8 @@ export class UsersService implements OnModuleInit {
   }
 
   async getStaffWorkQuality(page = 1, limit = 10, keyword?: string) {
-    const qb = this.repo.createQueryBuilder('u')
+    const qb = this.repo
+      .createQueryBuilder('u')
       .leftJoinAndSelect('u.role', 'role')
       .where('role.roleCode NOT IN (:...excludedRoles)', {
         excludedRoles: [RoleCode.ADMIN, RoleCode.MANAGER, RoleCode.RESIDENT],
@@ -251,7 +279,9 @@ export class UsersService implements OnModuleInit {
         if (user.role?.roleCode === RoleCode.OFFICER) {
           // Cán bộ tăng cường: Dựa vào tiêu chí thời gian xác minh
           const reflections = await this.repo.manager
-            .getRepository(require('../reflections/entities/reflection.entity').Reflection)
+            .getRepository(
+              require('../reflections/entities/reflection.entity').Reflection,
+            )
             .find({
               where: { officerId: user.id },
               select: ['createdAt', 'verifiedAt'],
@@ -262,7 +292,10 @@ export class UsersService implements OnModuleInit {
 
           let totalRating = 0;
           verifiedReflections.forEach((r) => {
-            const diffMin = (new Date(r.verifiedAt).getTime() - new Date(r.createdAt).getTime()) / (60 * 1000);
+            const diffMin =
+              (new Date(r.verifiedAt).getTime() -
+                new Date(r.createdAt).getTime()) /
+              (60 * 1000);
             let rating = 1;
             if (diffMin <= 15) rating = 5;
             else if (diffMin <= 30) rating = 4;
@@ -271,7 +304,10 @@ export class UsersService implements OnModuleInit {
             totalRating += rating;
           });
 
-          const averageRating = ratingCount > 0 ? parseFloat((totalRating / ratingCount).toFixed(1)) : 0;
+          const averageRating =
+            ratingCount > 0
+              ? parseFloat((totalRating / ratingCount).toFixed(1))
+              : 0;
 
           return {
             ...user,
@@ -287,11 +323,14 @@ export class UsersService implements OnModuleInit {
           } else if (roleCode === RoleCode.INSPECTOR) {
             whereClause = 'r.inspectorId = :uid';
           } else {
-            whereClause = '(r.patrolId = :uid OR r.officerId = :uid OR r.inspectorId = :uid)';
+            whereClause =
+              '(r.patrolId = :uid OR r.officerId = :uid OR r.inspectorId = :uid)';
           }
 
           const ratingData = await this.repo.manager
-            .getRepository(require('../reflections/entities/reflection.entity').Reflection)
+            .getRepository(
+              require('../reflections/entities/reflection.entity').Reflection,
+            )
             .createQueryBuilder('r')
             .select('AVG(r.rating)', 'avgRating')
             .addSelect('COUNT(r.rating)', 'ratingCount')
@@ -301,11 +340,15 @@ export class UsersService implements OnModuleInit {
 
           return {
             ...user,
-            averageRating: ratingData?.avgRating ? parseFloat(parseFloat(ratingData.avgRating).toFixed(1)) : 0,
-            ratingCount: ratingData?.ratingCount ? parseInt(ratingData.ratingCount) : 0,
+            averageRating: ratingData?.avgRating
+              ? parseFloat(parseFloat(ratingData.avgRating).toFixed(1))
+              : 0,
+            ratingCount: ratingData?.ratingCount
+              ? parseInt(ratingData.ratingCount)
+              : 0,
           };
         }
-      })
+      }),
     );
 
     return {
@@ -356,9 +399,12 @@ export class UsersService implements OnModuleInit {
         address: user.address || 'Chưa cập nhật',
         userId: user.id,
       });
-      await this.repo.manager.getRepository(Resident).save(resident).catch((err) => {
-        console.error('Lỗi tự động tạo Resident trong findOne:', err);
-      });
+      await this.repo.manager
+        .getRepository(Resident)
+        .save(resident)
+        .catch((err) => {
+          console.error('Lỗi tự động tạo Resident trong findOne:', err);
+        });
     }
     (user as any).resident = resident;
 
@@ -426,9 +472,12 @@ export class UsersService implements OnModuleInit {
           address: userWithRole.address || 'Chưa cập nhật',
           userId: userWithRole.id,
         });
-        await this.repo.manager.getRepository(Resident).save(resident).catch((err) => {
-          console.error('Lỗi tự động tạo Resident trong updateProfile:', err);
-        });
+        await this.repo.manager
+          .getRepository(Resident)
+          .save(resident)
+          .catch((err) => {
+            console.error('Lỗi tự động tạo Resident trong updateProfile:', err);
+          });
       }
     }
     (result as any).resident = resident;
@@ -573,7 +622,10 @@ export class UsersService implements OnModuleInit {
         });
       return { statusCode: 200, message: 'Thành công', data: history };
     } catch (err) {
-      console.error('[getReputationHistory] Lỗi truy vấn lịch sử uy tín:', err?.message);
+      console.error(
+        '[getReputationHistory] Lỗi truy vấn lịch sử uy tín:',
+        err?.message,
+      );
       // Trả về mảng rỗng thay vì crash 500 (bảng có thể chưa tồn tại trên production)
       return { statusCode: 200, message: 'Thành công', data: [] };
     }
@@ -584,7 +636,8 @@ export class UsersService implements OnModuleInit {
   }
 
   async findDeleted(page = 1, limit = 10, keyword?: string) {
-    const qb = this.repo.createQueryBuilder('u')
+    const qb = this.repo
+      .createQueryBuilder('u')
       .leftJoinAndSelect('u.role', 'role')
       .withDeleted()
       .where('u.deletedAt IS NOT NULL')
@@ -616,7 +669,8 @@ export class UsersService implements OnModuleInit {
       withDeleted: true,
     });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
-    if (!user.deletedAt) throw new BadRequestException('Người dùng không ở trạng thái bị xóa');
+    if (!user.deletedAt)
+      throw new BadRequestException('Người dùng không ở trạng thái bị xóa');
     await this.repo.restore(id);
     return { statusCode: 200, message: 'Khôi phục tài khoản thành công' };
   }
@@ -626,7 +680,10 @@ export class UsersService implements OnModuleInit {
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
     user.status = require('./enums/user-status.enum').UserStatus.INACTIVE;
     await this.repo.save(user);
-    return { statusCode: 200, message: 'Tạm ngừng hoạt động tài khoản thành công' };
+    return {
+      statusCode: 200,
+      message: 'Tạm ngừng hoạt động tài khoản thành công',
+    };
   }
 
   async activateUser(id: number) {
@@ -637,4 +694,3 @@ export class UsersService implements OnModuleInit {
     return { statusCode: 200, message: 'Kích hoạt tài khoản thành công' };
   }
 }
-

@@ -49,26 +49,31 @@ export class ResidentsService {
 
       // 1. Nếu đã có tài khoản liên kết rồi
       if (existingResident.userId) {
-        const targetUserId = dto.userId || (existingUser ? existingUser.id : null);
-        
+        const targetUserId =
+          dto.userId || (existingUser ? existingUser.id : null);
+
         if (targetUserId && existingResident.userId === targetUserId) {
           // Cập nhật thông tin nếu có thay đổi
           if (dto.fullName) existingResident.fullName = dto.fullName;
           if (dto.address) existingResident.address = dto.address;
           if (dto.latitude) existingResident.latitude = dto.latitude;
           if (dto.longitude) existingResident.longitude = dto.longitude;
-          if (dto.numberOfMembers) existingResident.numberOfMembers = dto.numberOfMembers;
+          if (dto.numberOfMembers)
+            existingResident.numberOfMembers = dto.numberOfMembers;
           if (dto.hasElderly) existingResident.hasElderly = dto.hasElderly;
           if (dto.hasChildren) existingResident.hasChildren = dto.hasChildren;
-          if (dto.hasPregnantWomen) existingResident.hasPregnantWomen = dto.hasPregnantWomen;
-          if (dto.hasChronicDisease) existingResident.hasChronicDisease = dto.hasChronicDisease;
+          if (dto.hasPregnantWomen)
+            existingResident.hasPregnantWomen = dto.hasPregnantWomen;
+          if (dto.hasChronicDisease)
+            existingResident.hasChronicDisease = dto.hasChronicDisease;
           if (dto.houseType) existingResident.houseType = dto.houseType;
           if (dto.hasBusiness) existingResident.hasBusiness = dto.hasBusiness;
-          
+
           const saved = await this.repo.save(existingResident);
           return {
             statusCode: 201,
-            message: 'Liên kết tài khoản với hộ dân thành công (đã liên kết trước đó)',
+            message:
+              'Liên kết tài khoản với hộ dân thành công (đã liên kết trước đó)',
             data: saved,
           };
         }
@@ -81,7 +86,8 @@ export class ResidentsService {
       // 2. Nếu chưa có tài khoản liên kết
       if (dto.createAccount !== false) {
         try {
-          const targetUserId = dto.userId || (existingUser ? existingUser.id : null);
+          const targetUserId =
+            dto.userId || (existingUser ? existingUser.id : null);
           let linkedUserId = targetUserId;
 
           if (!linkedUserId) {
@@ -106,8 +112,10 @@ export class ResidentsService {
           if (dto.address) existingResident.address = dto.address;
           if (dto.hasElderly) existingResident.hasElderly = dto.hasElderly;
           if (dto.hasChildren) existingResident.hasChildren = dto.hasChildren;
-          if (dto.hasPregnantWomen) existingResident.hasPregnantWomen = dto.hasPregnantWomen;
-          if (dto.hasChronicDisease) existingResident.hasChronicDisease = dto.hasChronicDisease;
+          if (dto.hasPregnantWomen)
+            existingResident.hasPregnantWomen = dto.hasPregnantWomen;
+          if (dto.hasChronicDisease)
+            existingResident.hasChronicDisease = dto.hasChronicDisease;
           if (dto.houseType) existingResident.houseType = dto.houseType;
           if (dto.hasBusiness) existingResident.hasBusiness = dto.hasBusiness;
 
@@ -186,7 +194,10 @@ export class ResidentsService {
           await this.repo.save(saved);
         }
       } catch (error) {
-        console.error('❌ Tự động liên kết tài khoản cũ thất bại:', error.message);
+        console.error(
+          '❌ Tự động liên kết tài khoản cũ thất bại:',
+          error.message,
+        );
       }
     }
 
@@ -254,10 +265,10 @@ export class ResidentsService {
   }
 
   async findOne(id: number) {
-    const r = await this.repo.findOne({
+    const r = (await this.repo.findOne({
       where: { id },
       relations: ['floodDamages'],
-    }) as any;
+    })) as any;
     if (!r) throw new NotFoundException('Không tìm thấy người dân');
 
     if (r.userId) {

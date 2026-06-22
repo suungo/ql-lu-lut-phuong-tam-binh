@@ -173,28 +173,34 @@ export class VerificationsService {
 
       // ============ XỬ LÝ ĐĂNG KÝ NGƯỜI DÂN ============
       if (v.verificationType === VerificationType.RESIDENT_REGISTRATION) {
-        const userRes = await this.usersService.findOne(v.user_id).catch(() => null);
+        const userRes = await this.usersService
+          .findOne(v.user_id)
+          .catch(() => null);
         const userData = userRes?.data;
 
         if (dto.status === VerificationStatus.APPROVED) {
           if (userData) {
-            this.notificationsService.create({
-              userId: v.user_id,
-              title: 'Tài khoản đã được phê duyệt',
-              content: `Chào ${userData.fullName || 'bạn'}, tài khoản đăng ký của bạn đã được Ban quản trị phê duyệt. Bạn có thể đăng nhập hệ thống ngay bây giờ.`,
-              type: 'VERIFICATION_UPDATE',
-              referenceId: v.id,
-            }).catch(console.error);
+            this.notificationsService
+              .create({
+                userId: v.user_id,
+                title: 'Tài khoản đã được phê duyệt',
+                content: `Chào ${userData.fullName || 'bạn'}, tài khoản đăng ký của bạn đã được Ban quản trị phê duyệt. Bạn có thể đăng nhập hệ thống ngay bây giờ.`,
+                type: 'VERIFICATION_UPDATE',
+                referenceId: v.id,
+              })
+              .catch(console.error);
           }
         } else if (dto.status === VerificationStatus.REJECTED) {
           if (userData) {
-            this.notificationsService.create({
-              userId: v.user_id,
-              title: 'Yêu cầu đăng ký bị từ chối',
-              content: `Chào ${userData.fullName || 'bạn'}, yêu cầu đăng ký tài khoản của bạn đã bị từ chối${dto.reviewNote ? `: ${dto.reviewNote}` : '.'}`,
-              type: 'VERIFICATION_UPDATE',
-              referenceId: v.id,
-            }).catch(console.error);
+            this.notificationsService
+              .create({
+                userId: v.user_id,
+                title: 'Yêu cầu đăng ký bị từ chối',
+                content: `Chào ${userData.fullName || 'bạn'}, yêu cầu đăng ký tài khoản của bạn đã bị từ chối${dto.reviewNote ? `: ${dto.reviewNote}` : '.'}`,
+                type: 'VERIFICATION_UPDATE',
+                referenceId: v.id,
+              })
+              .catch(console.error);
           }
         }
       }
@@ -206,7 +212,6 @@ export class VerificationsService {
       data: await this.repo.save(v),
     };
   }
-
 
   async remove(id: number) {
     const v = await this.repo.findOne({ where: { id } });

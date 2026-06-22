@@ -31,4 +31,6 @@ export class BulkCreateResidentContactDto {
   contacts: CreateResidentContactDto[];
 }
 
-export class UpdateResidentContactDto extends PartialType(CreateResidentContactDto) {}
+export class UpdateResidentContactDto extends PartialType(
+  CreateResidentContactDto,
+) {}

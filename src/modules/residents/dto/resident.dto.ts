@@ -104,4 +104,3 @@ export class CreateResidentDto {
 }
 
 export class UpdateResidentDto extends PartialType(CreateResidentDto) {}
-
