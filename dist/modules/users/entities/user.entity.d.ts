@@ -1,0 +1,35 @@
+import { BaseEntity } from 'src/common/entities/base.entity';
+import { Gender } from 'src/common/enums/gender.enum';
+import { Conversation } from 'src/modules/chats/entities/conversation.entity';
+import { Message } from 'src/modules/chats/entities/message.entity';
+import type { FloodDamage } from 'src/modules/flood-damages/entities/flood-damage.entity';
+import { Notification } from 'src/modules/notifications/entities/notification.entity';
+import { Comment } from 'src/modules/reflections/entities/comment.entity';
+import { Like } from 'src/modules/reflections/entities/like.entity';
+import { Reflection } from 'src/modules/reflections/entities/reflection.entity';
+import { Role } from 'src/modules/roles/entities/role.entity';
+import { UserStatus } from '../enums/user-status.enum';
+import { Device } from './device.entity';
+export declare class User extends BaseEntity {
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    password?: string;
+    gender: Gender;
+    dateBirth: Date;
+    address: string;
+    avatar?: string;
+    status: UserStatus;
+    reputationPoints: number;
+    reputationBlockedUntil?: Date;
+    roleId: number;
+    role: Role;
+    notifications: Notification[];
+    messages: Message[];
+    conversations: Conversation[];
+    reflections: Reflection[];
+    likes: Like[];
+    comments: Comment[];
+    devices: Device[];
+    floodDamages: FloodDamage[];
+}

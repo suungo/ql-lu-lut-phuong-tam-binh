@@ -1,0 +1,13 @@
+export declare enum DispatchReportStatus {
+    PENDING = "PENDING",
+    ACCEPTED = "ACCEPTED",
+    REJECTED = "REJECTED",
+    EXPIRED = "EXPIRED",
+    IN_PROGRESS = "IN_PROGRESS",
+    COMPLETED = "COMPLETED",
+    CANCELLED = "CANCELLED"
+}
+export declare enum DispatchReportType {
+    MANAGER_TO_INSPECTOR = "MANAGER_TO_INSPECTOR",
+    INSPECTOR_TO_PATROL = "INSPECTOR_TO_PATROL"
+}
